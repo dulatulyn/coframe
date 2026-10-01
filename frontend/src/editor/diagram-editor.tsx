@@ -10,7 +10,7 @@ import { NotationDock, type ToolId } from "@/components/editor-chrome/notation-d
 import { ZoomControl } from "@/components/editor-chrome/status";
 import { keys, uploadPreview } from "@/lib/api/hooks";
 import type { Diagram, Project, User } from "@/lib/api/types";
-import { useProjectUi } from "@/lib/project-ui";
+import { useFilesPanel, useInspectorPanel } from "@/lib/panels";
 import { cn } from "@/lib/utils";
 
 import {
@@ -64,9 +64,9 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [minimapOpen, setMinimapOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const inspectorOpen = useProjectUi((s) => s.inspectorOpen);
-  const filesOpen = useProjectUi((s) => s.filesOpen);
-  const setInspectorOpen = useProjectUi((s) => s.setInspectorOpen);
+  const files = useFilesPanel();
+  const inspector = useInspectorPanel();
+  const filesBeside = files.wide && files.open;
   const qc = useQueryClient();
   useSession(session);
 
@@ -222,66 +222,76 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         readOnly={readOnly}
         onExport={editor ? (format) => void runExport(editor, format, diagram.name) : undefined}
         onHistory={() => setHistoryOpen(true)}
+        onMinimap={editor && hasService(editor, "minimap") ? () => setMinimapOpen(toggleMinimap(editor)) : undefined}
+        onShortcuts={() => setShortcutsOpen(true)}
       />
 
-      {!readOnly && editor && (
-        <NotationDock
-          activeTool={tool}
-          onTool={onTool}
-          onCreate={onCreate}
-          onAllElements={onAllElements}
-          className="absolute bottom-5 z-20 -translate-x-1/2 transition-[left] duration-200"
-          style={{ left: `calc(50% + ${filesOpen ? 158 : 0}px - 180px)` }}
-        />
-      )}
-
-      <div className="absolute bottom-5 right-24 z-20 flex items-center gap-2">
-        {editor && hasService(editor, "minimap") && (
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-3 bottom-3 z-20 flex flex-col-reverse items-end gap-2 pr-[72px] transition-[padding] duration-200 sm:bottom-5 md:flex-row md:items-end md:justify-center",
+          filesBeside && "lg:pl-[316px]",
+        )}
+      >
+        {!readOnly && editor && (
+          <NotationDock
+            activeTool={tool}
+            onTool={onTool}
+            onCreate={onCreate}
+            onAllElements={onAllElements}
+            className="pointer-events-auto w-full min-w-0 md:w-auto"
+          />
+        )}
+        <div className="pointer-events-auto flex shrink-0 items-center gap-2">
+          {editor && hasService(editor, "minimap") && (
+            <button
+              type="button"
+              aria-label="Toggle minimap"
+              aria-pressed={minimapOpen}
+              onClick={() => setMinimapOpen(toggleMinimap(editor))}
+              className={cn(
+                "hidden size-10 place-items-center rounded-full border border-hairline bg-paper shadow-float hover:bg-fog 2xl:grid",
+                minimapOpen && "bg-ink text-paper hover:bg-ink/85",
+              )}
+            >
+              <MapIcon className="size-4" />
+            </button>
+          )}
           <button
             type="button"
-            aria-label="Toggle minimap"
-            aria-pressed={minimapOpen}
-            onClick={() => setMinimapOpen(toggleMinimap(editor))}
-            className={cn(
-              "grid size-10 place-items-center rounded-full border border-hairline bg-paper shadow-float hover:bg-fog",
-              minimapOpen && "bg-ink text-paper hover:bg-ink/85",
-            )}
+            aria-label="Keyboard shortcuts"
+            onClick={() => setShortcutsOpen(true)}
+            className="hidden size-10 place-items-center rounded-full border border-hairline bg-paper shadow-float hover:bg-fog 2xl:grid"
           >
-            <MapIcon className="size-4" />
+            <Keyboard className="size-4" />
           </button>
-        )}
-        <button
-          type="button"
-          aria-label="Keyboard shortcuts"
-          onClick={() => setShortcutsOpen(true)}
-          className="grid size-10 place-items-center rounded-full border border-hairline bg-paper shadow-float hover:bg-fog"
-        >
-          <Keyboard className="size-4" />
-        </button>
-        <ZoomControl
-          zoom={zoom}
-          onZoomIn={() => editor && zoomBy(editor, 1.2)}
-          onZoomOut={() => editor && zoomBy(editor, 1 / 1.2)}
-          onFit={() => editor && zoomToFit(editor)}
-          onReset={() => editor && resetZoom(editor)}
-        />
+          <ZoomControl
+            zoom={zoom}
+            onZoomIn={() => editor && zoomBy(editor, 1.2)}
+            onZoomOut={() => editor && zoomBy(editor, 1 / 1.2)}
+            onFit={() => editor && zoomToFit(editor)}
+            onReset={() => editor && resetZoom(editor)}
+          />
+        </div>
       </div>
 
-      {editor && inspectable && inspectorOpen && (
+      {editor && inspectable && inspector.open && (
         <EditorInspector
           key={selected.id}
           editor={editor}
           element={selected}
           readOnly={readOnly}
-          onClose={() => setInspectorOpen(false)}
-          className="absolute bottom-24 right-4 top-20 z-20 w-[320px] overflow-y-auto rounded-[24px] border border-hairline bg-paper shadow-float"
+          onClose={() => inspector.setOpen(false)}
+          className={cn(
+            "absolute z-30 overflow-y-auto rounded-[24px] border border-hairline bg-paper shadow-float",
+            inspector.medium ? "bottom-24 right-4 top-20 w-[320px]" : "inset-x-3 bottom-3 max-h-[60dvh]",
+          )}
         />
       )}
-      {editor && inspectable && !inspectorOpen && (
+      {editor && inspectable && !inspector.open && (
         <button
           type="button"
-          onClick={() => setInspectorOpen(true)}
-          className="absolute right-4 top-20 z-20 flex h-10 items-center gap-2 rounded-full border border-hairline bg-paper px-4 text-[13px] font-medium shadow-float hover:bg-fog"
+          onClick={() => inspector.setOpen(true)}
+          className="absolute right-3 top-[68px] z-20 flex h-10 items-center gap-2 rounded-full border border-hairline bg-paper px-4 text-[13px] font-medium shadow-float hover:bg-fog sm:right-4 sm:top-20"
         >
           <SlidersHorizontal className="size-4" /> Properties
         </button>

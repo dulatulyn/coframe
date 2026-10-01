@@ -51,8 +51,16 @@ export function JoinJamButton({ size = "sm" }: { size?: "sm" | "xl" }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size={size} className={size === "sm" ? "h-9 px-3.5" : undefined}>
-          <span className="size-2 rounded-full bg-beacon" /> Join a jam
+        <Button variant="outline" size={size} className={size === "sm" ? "h-9 shrink-0 px-3 sm:px-3.5" : undefined}>
+          <span className="size-2 rounded-full bg-beacon" />
+          {size === "sm" ? (
+            <>
+              <span className="sm:hidden">Join</span>
+              <span className="max-sm:hidden">Join a jam</span>
+            </>
+          ) : (
+            "Join a jam"
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80">

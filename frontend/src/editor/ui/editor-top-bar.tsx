@@ -1,6 +1,20 @@
 "use client";
 
-import { ClipboardCopy, Code2, Download, FileText, History, Image as ImageIcon, MoreHorizontal, PanelLeft, Redo2, Share2, Undo2 } from "lucide-react";
+import {
+  ClipboardCopy,
+  Code2,
+  Download,
+  FileText,
+  History,
+  Image as ImageIcon,
+  Keyboard,
+  Map as MapIcon,
+  MoreHorizontal,
+  PanelLeft,
+  Redo2,
+  Share2,
+  Undo2,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,7 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { errorMessage } from "@/lib/api/client";
 import { useUpdateDiagram } from "@/lib/api/hooks";
 import type { Diagram, Project, User } from "@/lib/api/types";
-import { useProjectUi } from "@/lib/project-ui";
+import { useFilesPanel } from "@/lib/panels";
 import { cn } from "@/lib/utils";
 
 import type { Peer } from "../collab/presence";
@@ -41,6 +55,8 @@ export function EditorTopBar({
   readOnly,
   onExport,
   onHistory,
+  onMinimap,
+  onShortcuts,
 }: {
   diagram: Diagram;
   project: Project;
@@ -55,8 +71,10 @@ export function EditorTopBar({
   readOnly: boolean;
   onExport?: (format: ExportFormat) => void;
   onHistory?: () => void;
+  onMinimap?: () => void;
+  onShortcuts?: () => void;
 }) {
-  const { filesOpen, setFilesOpen } = useProjectUi();
+  const { open: filesOpen, setOpen: setFilesOpen } = useFilesPanel();
   const [shareOpen, setShareOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const update = useUpdateDiagram(project.id);
@@ -76,7 +94,8 @@ export function EditorTopBar({
 
   return (
     <>
-      <div className="absolute left-4 top-4 z-30 flex h-12 max-w-[calc(50%-24px)] items-center gap-1 rounded-full border border-hairline bg-paper pl-1.5 pr-4 shadow-float">
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
+      <div className="pointer-events-auto flex h-12 min-w-0 items-center gap-1 rounded-full border border-hairline bg-paper pl-1.5 pr-3 shadow-float sm:pr-4">
         {!filesOpen && (
           <button
             type="button"
@@ -89,11 +108,11 @@ export function EditorTopBar({
         )}
         <Link
           href={`/w/${project.workspaceId}`}
-          className={cn("truncate text-[14px] text-slate hover:text-ink", filesOpen ? "ml-2.5" : "ml-2")}
+          className={cn("hidden max-w-[16ch] truncate text-[14px] text-slate hover:text-ink md:inline", filesOpen ? "ml-2.5" : "ml-2")}
         >
           {project.name}
         </Link>
-        <span className="text-slate-soft">/</span>
+        <span className="hidden text-slate-soft md:inline">/</span>
         {editingName && !readOnly ? (
           <input
             autoFocus
@@ -117,13 +136,13 @@ export function EditorTopBar({
             {diagram.name}
           </button>
         )}
-        <span className="mx-2.5 h-5 w-px shrink-0 bg-hairline" />
+        <span className="mx-2 h-5 w-px shrink-0 bg-hairline sm:mx-2.5" />
         {readOnly ? <span className="shrink-0 text-[13px] text-slate">View only</span> : <SaveStatus state={saveState} />}
       </div>
 
-      <div className="absolute right-4 top-4 z-30 flex h-12 items-center gap-2 rounded-full border border-hairline bg-paper pl-2 pr-1.5 shadow-float">
+      <div className="pointer-events-auto flex h-12 shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-paper pl-1.5 pr-1.5 shadow-float sm:gap-2 sm:pl-2">
         {!readOnly && (
-          <>
+          <div className="hidden items-center gap-2 md:flex">
             <button
               type="button"
               aria-label="Undo"
@@ -145,10 +164,10 @@ export function EditorTopBar({
               <Redo2 className="size-[18px]" strokeWidth={1.75} />
             </button>
             <span className="h-5 w-px bg-hairline" />
-          </>
+          </div>
         )}
         {people.length > 0 && (
-          <div className="flex items-center -space-x-1.5">
+          <div className="hidden items-center -space-x-1.5 sm:flex">
             {people.slice(0, 5).map((p) => (
               <Tooltip key={p.clientId}>
                 <TooltipTrigger asChild>
@@ -173,7 +192,7 @@ export function EditorTopBar({
         )}
         {project.activeJam && (
           <button type="button" onClick={() => setShareOpen(true)} className="rounded-full">
-            <JamChip code={project.activeJam.code} />
+            <JamChip code={project.activeJam.code} className="max-sm:[&>span:last-child]:hidden" />
           </button>
         )}
         {onExport && (
@@ -184,6 +203,17 @@ export function EditorTopBar({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {!readOnly && (
+                <div className="md:hidden">
+                  <DropdownMenuItem disabled={!canUndo} onSelect={onUndo}>
+                    <Undo2 /> Undo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={!canRedo} onSelect={onRedo}>
+                    <Redo2 /> Redo
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </div>
+              )}
               {onHistory && (
                 <>
                   <DropdownMenuItem onSelect={onHistory}>
@@ -214,18 +244,35 @@ export function EditorTopBar({
               <DropdownMenuItem onSelect={() => onExport("copy-xml")}>
                 <Code2 /> Copy BPMN XML
               </DropdownMenuItem>
+              {(onMinimap || onShortcuts) && (
+                <div className="2xl:hidden">
+                  <DropdownMenuSeparator />
+                  {onMinimap && (
+                    <DropdownMenuItem onSelect={onMinimap}>
+                      <MapIcon /> Minimap
+                    </DropdownMenuItem>
+                  )}
+                  {onShortcuts && (
+                    <DropdownMenuItem onSelect={onShortcuts}>
+                      <Keyboard /> Keyboard shortcuts
+                    </DropdownMenuItem>
+                  )}
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <SaveWorkButton compact />
+        <SaveWorkButton compact className="hidden lg:inline-flex" />
         <button
           type="button"
+          aria-label="Share"
           onClick={() => setShareOpen(true)}
-          className="flex h-9 items-center gap-1.5 rounded-full bg-ink px-4 text-[14px] font-medium text-paper hover:bg-ink/85"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-ink px-2.5 text-[14px] font-medium text-paper hover:bg-ink/85 sm:px-4"
         >
-          <Share2 className="size-4" strokeWidth={2} /> Share
+          <Share2 className="size-4" strokeWidth={2} /> <span className="max-sm:hidden">Share</span>
         </button>
         <UserMenu />
+      </div>
       </div>
 
       <ShareDialog project={project} open={shareOpen} onOpenChange={setShareOpen} />

@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { CATALOG, type CatalogGroup, type CatalogItem } from "@/components/bpmn/catalog";
 import { Glyph } from "@/components/bpmn/glyphs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type ToolId = "select" | "hand" | "lasso" | "space" | "connect";
@@ -27,12 +28,25 @@ export const TOOLS: { id: ToolId; label: string; key: string; icon: LucideIcon }
   { id: "connect", label: "Global connect", key: "C", icon: Spline },
 ];
 
-function Tip({ label, keys }: { label: string; keys?: string }) {
+function DockTip({
+  label,
+  keys,
+  hidden,
+  children,
+}: {
+  label: string;
+  keys?: string;
+  hidden?: boolean;
+  children: React.ReactElement;
+}) {
   return (
-    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-2.5 py-1 text-[12px] font-medium text-paper shadow-float group-hover/tip:inline-flex">
-      {label}
-      {keys && <span className="font-mono text-[11px] text-paper/60">{keys}</span>}
-    </span>
+    <Tooltip open={hidden ? false : undefined}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" sideOffset={10}>
+        {label}
+        {keys && <span className="font-mono text-[11px] text-paper/60">{keys}</span>}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -106,6 +120,22 @@ export function NotationDock({
   const [open, setOpen] = useState<string | undefined>(openGroupId);
   const [lastUsed, setLastUsed] = useState<Record<string, string>>({});
   const root = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const update = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, []);
   const openGroup = CATALOG.find((g) => g.id === open);
   const current = (group: CatalogGroup) => group.items.find((i) => i.id === lastUsed[group.id]) ?? group.items[0];
 
@@ -139,47 +169,53 @@ export function NotationDock({
           className="absolute bottom-full left-1/2 mb-3 -translate-x-1/2"
         />
       )}
-      <div className="flex items-center gap-1 rounded-[22px] border border-hairline bg-paper p-1.5 shadow-float">
+      <div
+        ref={bar}
+        data-more={more || undefined}
+        className="flex items-center gap-1 overflow-x-auto rounded-[22px] border border-hairline bg-paper p-1.5 shadow-float [scrollbar-width:none] data-more:[mask-image:linear-gradient(to_right,black_calc(100%-40px),transparent)] [&::-webkit-scrollbar]:hidden"
+      >
         {TOOLS.map((tool) => (
-          <button
-            key={tool.id}
-            type="button"
-            aria-label={tool.label}
-            aria-pressed={activeTool === tool.id}
-            onClick={(e) => onTool?.(tool.id, e.nativeEvent)}
-            className={cn(
-              "group/tip relative grid size-10 place-items-center rounded-2xl transition-colors",
-              activeTool === tool.id ? "bg-ink text-paper" : "text-ink hover:bg-fog",
-            )}
-          >
-            <tool.icon className="size-[18px]" strokeWidth={1.75} />
-            <Tip label={tool.label} keys={tool.key} />
-          </button>
+          <DockTip key={tool.id} label={tool.label} keys={tool.key}>
+            <button
+              type="button"
+              aria-label={tool.label}
+              aria-pressed={activeTool === tool.id}
+              onClick={(e) => onTool?.(tool.id, e.nativeEvent)}
+              className={cn(
+                "grid size-9 shrink-0 place-items-center rounded-2xl transition-colors 2xl:size-10",
+                (tool.id === "lasso" || tool.id === "space") && "max-sm:hidden",
+                activeTool === tool.id ? "bg-ink text-paper" : "text-ink hover:bg-fog",
+              )}
+            >
+              <tool.icon className="size-[18px]" strokeWidth={1.75} />
+            </button>
+          </DockTip>
         ))}
-        <span className="mx-1 h-6 w-px bg-hairline" />
+        <span className="mx-1 h-6 w-px shrink-0 bg-hairline" />
         {CATALOG.map((group) => {
           const item = current(group);
           const expanded = open === group.id;
           return (
-            <div key={group.id} className="relative">
-              <button
-                type="button"
-                draggable
-                aria-label={item.label}
-                onClick={(e) => pick(group, item, e.nativeEvent)}
-                onDragStart={(e) => pick(group, item, e.nativeEvent)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setOpen(expanded ? undefined : group.id);
-                }}
-                className={cn(
-                  "group/tip relative grid size-10 place-items-center rounded-2xl transition-colors",
-                  expanded ? "bg-fog" : "hover:bg-fog",
-                )}
-              >
-                <Glyph kind={item.glyph} size={22} />
-                {!expanded && <Tip label={item.label} />}
-              </button>
+            <div key={group.id} className="relative shrink-0">
+              <DockTip label={item.label} hidden={expanded}>
+                <button
+                  type="button"
+                  draggable
+                  aria-label={item.label}
+                  onClick={(e) => pick(group, item, e.nativeEvent)}
+                  onDragStart={(e) => pick(group, item, e.nativeEvent)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setOpen(expanded ? undefined : group.id);
+                  }}
+                  className={cn(
+                    "grid size-9 place-items-center rounded-2xl transition-colors 2xl:size-10",
+                    expanded ? "bg-fog" : "hover:bg-fog",
+                  )}
+                >
+                  <Glyph kind={item.glyph} size={22} />
+                </button>
+              </DockTip>
               <button
                 type="button"
                 aria-label={`${group.label} types`}
@@ -195,94 +231,23 @@ export function NotationDock({
             </div>
           );
         })}
-        <span className="mx-1 h-6 w-px bg-hairline" />
-        <button
-          type="button"
-          aria-label="All elements"
-          onClick={(e) => {
-            setOpen(undefined);
-            onAllElements?.(e.nativeEvent);
-          }}
-          className="group/tip relative flex h-10 items-center gap-2 whitespace-nowrap rounded-2xl px-3 text-[13px] font-medium hover:bg-fog"
-        >
-          <Search className="size-4" strokeWidth={1.75} />
-          <span className="hidden 2xl:inline">All elements</span>
-          <span className="keycap">N</span>
-          <span className="2xl:hidden">
-            <Tip label="All elements" keys="N" />
-          </span>
-        </button>
+        <span className="mx-1 h-6 w-px shrink-0 bg-hairline" />
+        <DockTip label="All elements" keys="N">
+          <button
+            type="button"
+            aria-label="All elements"
+            onClick={(e) => {
+              setOpen(undefined);
+              onAllElements?.(e.nativeEvent);
+            }}
+            className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-2xl px-3 text-[13px] font-medium hover:bg-fog 2xl:h-10"
+          >
+            <Search className="size-4" strokeWidth={1.75} />
+            <span className="hidden 2xl:inline">All elements</span>
+            <span className="keycap max-sm:hidden">N</span>
+          </button>
+        </DockTip>
       </div>
-    </div>
-  );
-}
-
-export function NotationRibbon({ activeTool = "select", className }: { activeTool?: ToolId; className?: string }) {
-  const inline: { label: string; ids: [string, number][] }[] = [
-    { label: "Events", ids: [["start", 1], ["intermediate", 1], ["end", 1]] },
-    { label: "Gateways", ids: [["gateway", 2]] },
-    { label: "Activities", ids: [["task", 2], ["subprocess", 1]] },
-    { label: "Data", ids: [["data", 1]] },
-    { label: "Pools", ids: [["participant", 1]] },
-    { label: "Notes", ids: [["artifact", 1]] },
-  ];
-  return (
-    <div
-      className={cn(
-        "flex items-end gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-1">
-        <span className="px-1 text-[11px] text-slate">Tools</span>
-        <div className="flex items-center gap-0.5 rounded-2xl bg-fog p-1">
-          {TOOLS.map((tool) => (
-            <button
-              key={tool.id}
-              type="button"
-              aria-label={tool.label}
-              className={cn(
-                "group/tip relative grid size-9 place-items-center rounded-xl transition-colors",
-                activeTool === tool.id ? "bg-paper shadow-sm" : "text-ink/80 hover:bg-paper/70",
-              )}
-            >
-              <tool.icon className="size-[17px]" strokeWidth={1.75} />
-              <Tip label={tool.label} keys={tool.key} />
-            </button>
-          ))}
-        </div>
-      </div>
-      {inline.map((section) => (
-        <div key={section.label} className="flex flex-col gap-1">
-          <span className="px-1 text-[11px] text-slate">{section.label}</span>
-          <div className="flex items-center gap-0.5 rounded-2xl bg-fog p-1">
-            {section.ids.flatMap(([id, count]) =>
-              CATALOG.find((g) => g.id === id)!
-                .items.slice(0, count)
-                .map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-label={item.label}
-                    className="group/tip relative grid size-9 shrink-0 place-items-center rounded-xl text-ink hover:bg-paper"
-                  >
-                    <Glyph kind={item.glyph} size={21} />
-                    <Tip label={item.label} />
-                  </button>
-                )),
-            )}
-          </div>
-        </div>
-      ))}
-      <button
-        type="button"
-        aria-label="All elements"
-        className="group/tip relative ml-auto flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-2xl border border-hairline px-3 text-[13px] font-medium hover:bg-fog"
-      >
-        <Search className="size-4" strokeWidth={1.75} />
-        <span className="keycap">N</span>
-        <Tip label="All elements" keys="N" />
-      </button>
     </div>
   );
 }

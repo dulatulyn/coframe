@@ -72,6 +72,7 @@ import {
   useUpdateFolder,
 } from "@/lib/api/hooks";
 import type { DiagramMeta, Folder as FolderModel, Tree } from "@/lib/api/types";
+import { useFilesPanel } from "@/lib/panels";
 import { useProjectUi } from "@/lib/project-ui";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -159,6 +160,7 @@ export function ProjectFiles({
   const router = useRouter();
   const { presence } = useProjectChannel();
   const ui = useProjectUi();
+  const files = useFilesPanel();
   const [folderId, setFolderId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showTrash, setShowTrash] = useState(false);
@@ -301,7 +303,7 @@ export function ProjectFiles({
         <button
           type="button"
           aria-label="Hide files"
-          onClick={() => ui.setFilesOpen(false)}
+          onClick={() => files.setOpen(false)}
           className="grid size-8 place-items-center rounded-full text-slate hover:bg-fog hover:text-ink"
         >
           <PanelLeftClose className="size-[18px]" strokeWidth={1.75} />

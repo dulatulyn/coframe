@@ -45,7 +45,7 @@ export function WorkspaceSwitcher({ current }: { current: Workspace | undefined 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex h-9 max-w-[240px] items-center gap-2 rounded-full pl-1 pr-2.5 outline-none hover:bg-fog focus-visible:ring-3 focus-visible:ring-cobalt/40">
+        <DropdownMenuTrigger className="flex h-9 max-w-[min(240px,42vw)] items-center gap-2 rounded-full pl-1 pr-2.5 outline-none hover:bg-fog focus-visible:ring-3 focus-visible:ring-cobalt/40">
           <WorkspaceBadge name={current?.name ?? "…"} size={26} />
           <span className="truncate text-[14px] font-medium">{current?.name ?? "Loading…"}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-slate" />

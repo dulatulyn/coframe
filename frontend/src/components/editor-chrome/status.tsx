@@ -31,27 +31,27 @@ export function SaveStatus({ state }: { state: SaveState }) {
   if (state === "saving") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[13px] text-slate">
-        <Loader2 className="size-3.5 animate-spin" /> Saving…
+        <Loader2 className="size-3.5 animate-spin" /> <span className="max-sm:sr-only">Saving…</span>
       </span>
     );
   }
   if (state === "offline") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[13px] text-slate">
-        <CloudOff className="size-3.5" /> Offline — changes will sync
+        <CloudOff className="size-3.5" /> <span className="max-sm:sr-only">Offline — changes will sync</span>
       </span>
     );
   }
   if (state === "local") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[13px] text-slate" title="Changes are kept on this device and sync when the connection is back">
-        <CloudOff className="size-3.5" /> Offline · saved on this device
+        <CloudOff className="size-3.5" /> <span className="max-sm:sr-only">Offline · saved on this device</span>
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-[13px] text-slate">
-      <Check className="size-3.5" /> Saved
+      <Check className="size-3.5" /> <span className="max-sm:sr-only">Saved</span>
     </span>
   );
 }

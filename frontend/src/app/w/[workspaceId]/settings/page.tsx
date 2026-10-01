@@ -42,12 +42,12 @@ const ROLES: { id: Role; label: string; hint: string }[] = [
 
 function Section({ title, text, children }: { title: string; text?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-6 border-t border-hairline py-10 lg:grid-cols-[280px_1fr]">
+    <section className="grid grid-cols-[minmax(0,1fr)] gap-6 border-t border-hairline py-10 lg:grid-cols-[280px_minmax(0,1fr)]">
       <div>
         <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
         {text && <p className="mt-1.5 text-[14px] leading-6 text-slate">{text}</p>}
       </div>
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </section>
   );
 }
@@ -135,7 +135,7 @@ export default function WorkspaceSettings() {
                         }
                       }}
                     >
-                      <SelectTrigger className="h-9 w-32 rounded-full border-hairline">
+                      <SelectTrigger className="h-9 w-24 shrink-0 rounded-full border-hairline sm:w-32">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -147,7 +147,7 @@ export default function WorkspaceSettings() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="w-32 text-right text-[14px] capitalize text-slate">{m.role}</span>
+                    <span className="w-16 shrink-0 text-right text-[14px] capitalize text-slate sm:w-32">{m.role}</span>
                   )}
                   {(isAdmin || self) && (
                     <Button
