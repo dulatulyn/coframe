@@ -2,6 +2,11 @@ from lxml import etree
 
 BPMN_MODEL_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 BPMN_DI_NS = "http://www.omg.org/spec/BPMN/20100524/DI"
+DMN_NAMESPACES = {
+    "https://www.omg.org/spec/DMN/20191111/MODEL/",
+    "http://www.omg.org/spec/DMN/20180521/MODEL/",
+    "http://www.omg.org/spec/DMN/20151101/dmn.xsd",
+}
 
 
 class InvalidXml(ValueError):
@@ -34,4 +39,11 @@ def parse_bpmn(data: str | bytes) -> etree._Element:
     root = parse_xml(data)
     if etree.QName(root).namespace != BPMN_MODEL_NS or etree.QName(root).localname != "definitions":
         raise InvalidXml("not_bpmn")
+    return root
+
+
+def parse_dmn(data: str | bytes) -> etree._Element:
+    root = parse_xml(data)
+    if etree.QName(root).namespace not in DMN_NAMESPACES or etree.QName(root).localname != "definitions":
+        raise InvalidXml("not_dmn")
     return root

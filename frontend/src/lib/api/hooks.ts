@@ -354,7 +354,7 @@ export function useRestoreFolder(projectId: string) {
 }
 
 export function useCreateDiagram(projectId: string) {
-  return useTreeMutation(projectId, (body: { name?: string; folderId?: string | null; xml?: string }) =>
+  return useTreeMutation(projectId, (body: { name?: string; folderId?: string | null; xml?: string; kind?: "bpmn" | "dmn" }) =>
     api<DiagramMeta>(`/projects/${projectId}/diagrams`, { method: "POST", body }),
   );
 }

@@ -33,6 +33,15 @@ class DiagramIn(Schema):
     name: Name | None = None
     folder_id: uuid.UUID | None = None
     xml: str | None = None
+    kind: Literal["bpmn", "dmn"] = "bpmn"
+
+
+class ContentIn(Schema):
+    xml: str
+
+
+class ContentOut(Schema):
+    content_updated_at: datetime
 
 
 class DiagramPatchIn(Schema):
@@ -54,6 +63,7 @@ class DiagramMeta(Schema):
     preview_updated_at: datetime | None
     pinned_at: datetime | None
     updated_by: PublicUser | None
+    kind: str = "bpmn"
 
 
 class DiagramOut(DiagramMeta):

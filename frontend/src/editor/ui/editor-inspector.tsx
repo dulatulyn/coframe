@@ -52,6 +52,7 @@ function LinkField({
   diagramId,
   label,
   empty,
+  kind,
 }: {
   editor: BpmnEditor;
   element: Shape;
@@ -60,11 +61,12 @@ function LinkField({
   diagramId: string;
   label: string;
   empty: string;
+  kind: "bpmn" | "dmn";
 }) {
   const { data: tree } = useTree(projectId);
   const router = useRouter();
   const linked: string = element.businessObject?.get?.("coframe:diagram") ?? "";
-  const options = (tree?.diagrams ?? []).filter((d) => d.id !== diagramId);
+  const options = (tree?.diagrams ?? []).filter((d) => d.id !== diagramId && (d.kind ?? "bpmn") === kind);
   const target = options.find((d) => d.id === linked);
   return (
     <Field label={label}>
@@ -272,6 +274,20 @@ export function EditorInspector({
             diagramId={diagramId}
             label="Calls diagram"
             empty="Not linked"
+            kind="bpmn"
+          />
+        )}
+
+        {element.type === "bpmn:BusinessRuleTask" && (
+          <LinkField
+            editor={editor}
+            element={element}
+            readOnly={readOnly}
+            projectId={projectId}
+            diagramId={diagramId}
+            label="Decision table"
+            empty="Not linked"
+            kind="dmn"
           />
         )}
 

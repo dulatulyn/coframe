@@ -1,5 +1,6 @@
 "use client";
 
+import { Table2 } from "lucide-react";
 import { useState } from "react";
 
 import { MiniDiagram } from "@/components/editor-chrome/files-panel";
@@ -11,17 +12,26 @@ export function DiagramThumb({
   seed = 0,
   minWidth = 720,
   className,
+  kind = "bpmn",
 }: {
   diagramId: string | null;
   version?: string | null;
   seed?: number;
   minWidth?: number;
   className?: string;
+  kind?: "bpmn" | "dmn";
 }) {
   const [failed, setFailed] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
   const src = diagramId && version && !failed ? `/api/diagrams/${diagramId}/preview?v=${encodeURIComponent(version)}` : null;
   const width = naturalWidth ? Math.min(88, (naturalWidth / minWidth) * 100) : 88;
+  if (kind === "dmn") {
+    return (
+      <div className={cn("grid place-items-center overflow-hidden bg-paper", className)}>
+        <Table2 className="size-[38%] max-h-10 max-w-10 text-ink/35" strokeWidth={1.5} />
+      </div>
+    );
+  }
   return (
     <div className={cn("grid place-items-center overflow-hidden bg-paper", className)}>
       {src ? (

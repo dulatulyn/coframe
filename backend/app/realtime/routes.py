@@ -78,7 +78,7 @@ async def diagram_socket(websocket: WebSocket, diagram_id: str) -> None:
         if parsed is None:
             return None
         diagram = await db.get(Diagram, parsed)
-        if diagram is None or diagram.deleted_at is not None:
+        if diagram is None or diagram.deleted_at is not None or diagram.kind != "bpmn":
             return None
         return await db.get(Project, diagram.project_id), diagram
 

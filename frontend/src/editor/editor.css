@@ -375,3 +375,16 @@
 .coframe-comment-badge:hover {
   background: #3451c4;
 }
+
+.coframe-dmn .view-drd {
+  display: none;
+}
+
+.coframe-dmn .dmn-decision-table-container,
+.coframe-dmn .dmn-literal-expression-container {
+  padding: 16px 20px;
+}
+
+.coframe-dmn .tjs-container {
+  font-family: var(--font-sans, system-ui);
+}

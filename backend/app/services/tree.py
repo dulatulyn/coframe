@@ -264,6 +264,7 @@ def diagram_fields(diagram: Diagram) -> dict:
         "preview_updated_at": diagram.preview_updated_at,
         "pinned_at": diagram.pinned_at,
         "updated_by": public_user(diagram.updater),
+        "kind": diagram.kind,
     }
 
 

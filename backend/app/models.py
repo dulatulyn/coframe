@@ -168,6 +168,7 @@ class Diagram(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(Timestamp)
     trashed_with: Mapped[uuid.UUID | None] = mapped_column()
     public_token: Mapped[str | None] = mapped_column(String(32), unique=True)
+    kind: Mapped[str] = mapped_column(String(8), default="bpmn", server_default="bpmn")
 
     updater: Mapped[User | None] = relationship(foreign_keys=[updated_by], lazy="joined")
 

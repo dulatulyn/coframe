@@ -1,7 +1,7 @@
 import secrets
 import uuid
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 
 from app.db import utcnow
@@ -17,6 +17,8 @@ router = APIRouter(tags=["public"])
 @router.put("/diagrams/{diagram_id}/public-link", response_model=PublicLinkOut)
 async def enable_public_link(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> PublicLinkOut:
     diagram, _, _ = await load_diagram(db, user, diagram_id, Access.edit)
+    if diagram.kind != "bpmn":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="not_shareable")
     if diagram.public_token is None:
         diagram.public_token = secrets.token_urlsafe(18)
         diagram.updated_at = utcnow()

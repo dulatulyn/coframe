@@ -16,7 +16,7 @@ const GAP_X = 120;
 const GAP_Y = 56;
 const PAD = 48;
 
-type Placed = { id: string; name: string; preview: string | null; x: number; y: number; level: number };
+type Placed = { id: string; name: string; kind: "bpmn" | "dmn"; preview: string | null; x: number; y: number; level: number };
 
 export function layoutMap(data: MapData): { cards: Placed[]; width: number; height: number } {
   const callers = new Map<string, string[]>();
@@ -44,7 +44,7 @@ export function layoutMap(data: MapData): { cards: Placed[]; width: number; heig
   let tallest = 0;
   for (const [col, list] of [...columns.entries()].sort((a, b) => a[0] - b[0])) {
     list.forEach((d, row) =>
-      cards.push({ id: d.id, name: d.name, preview: d.previewUpdatedAt, level: col, x: PAD + col * (CARD_W + GAP_X), y: PAD + row * (CARD_H + GAP_Y) }),
+      cards.push({ id: d.id, name: d.name, kind: d.kind, preview: d.previewUpdatedAt, level: col, x: PAD + col * (CARD_W + GAP_X), y: PAD + row * (CARD_H + GAP_Y) }),
     );
     tallest = Math.max(tallest, list.length);
   }
@@ -54,6 +54,7 @@ export function layoutMap(data: MapData): { cards: Placed[]; width: number; heig
     cards.push({
       id: d.id,
       name: d.name,
+      kind: d.kind,
       preview: d.previewUpdatedAt,
       level: -1,
       x: PAD + (i % perRow) * (CARD_W + 32),
@@ -142,7 +143,7 @@ export function ProcessMap({ projectId }: { projectId: string }) {
                 style={{ left: card.x, top: card.y, width: CARD_W, height: CARD_H }}
               >
                 <div className="min-h-0 flex-1 bg-canvas">
-                  <DiagramThumb diagramId={card.id} version={card.preview} minWidth={CARD_W} className="size-full" />
+                  <DiagramThumb kind={card.kind} diagramId={card.id} version={card.preview} minWidth={CARD_W} className="size-full" />
                 </div>
                 <div className="truncate border-t border-hairline px-3 py-2 text-[13px] font-medium">{card.name}</div>
               </Link>

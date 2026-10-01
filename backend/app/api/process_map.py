@@ -51,7 +51,8 @@ async def process_map(project_id: uuid.UUID, user: CurrentUser, db: Db) -> Proce
     ]
     return ProcessMapOut(
         diagrams=[
-            MapDiagram(id=d.id, name=d.name, preview_updated_at=d.preview_updated_at) for d in diagrams
+            MapDiagram(id=d.id, name=d.name, kind=d.kind, preview_updated_at=d.preview_updated_at)
+            for d in diagrams
         ],
         links=links,
     )

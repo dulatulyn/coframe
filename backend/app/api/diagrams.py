@@ -4,16 +4,16 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from sqlalchemy import select
 
 from app.bpmn.svg import sanitize_svg
-from app.bpmn.xmlsafe import InvalidXml, parse_bpmn
+from app.bpmn.xmlsafe import InvalidXml, parse_bpmn, parse_dmn
 from app.config import settings
 from app.db import utcnow
 from app.deps import CurrentUser, Db
-from app.models import Access, Diagram
+from app.models import Access, Diagram, DiagramVersion
 from app.permissions import load_diagram, load_project, not_found
-from app.schemas.tree import DiagramIn, DiagramMeta, DiagramOut, DiagramPatchIn
+from app.schemas.tree import ContentIn, ContentOut, DiagramIn, DiagramMeta, DiagramOut, DiagramPatchIn
 from app.services.common import read_body_limited, touch_project
 from app.services.diagrams import PREVIEW_CSP, content_disposition, copy_name, etag_for, etag_matches
-from app.services.projects import DEFAULT_DIAGRAM_NAME, create_diagram
+from app.services.projects import DEFAULT_DECISION_NAME, DEFAULT_DIAGRAM_NAME, create_diagram
 from app.services.realtime import close_deleted_diagrams, flush_diagram, publish
 from app.services.tree import (
     diagram_fields,
@@ -25,6 +25,7 @@ from app.services.tree import (
     restore_diagram,
     valid_position,
 )
+from app.services.versions import record_version
 
 router = APIRouter(tags=["diagrams"])
 
@@ -47,11 +48,18 @@ async def create(
         if len(body.xml.encode("utf-8")) > settings.max_xml_bytes:
             raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail="xml_too_large")
         try:
-            parse_bpmn(body.xml)
+            (parse_dmn if body.kind == "dmn" else parse_bpmn)(body.xml)
         except InvalidXml as exc:
-            raise bad_request("invalid_bpmn") from exc
+            raise bad_request("invalid_dmn" if body.kind == "dmn" else "invalid_bpmn") from exc
+    default_name = DEFAULT_DECISION_NAME if body.kind == "dmn" else DEFAULT_DIAGRAM_NAME
     diagram = await create_diagram(
-        db, project, user, name=body.name or DEFAULT_DIAGRAM_NAME, folder_id=body.folder_id, xml=body.xml
+        db,
+        project,
+        user,
+        name=body.name or default_name,
+        folder_id=body.folder_id,
+        xml=body.xml,
+        kind=body.kind,
     )
     await db.commit()
     await publish(project.id, "tree")
@@ -145,6 +153,7 @@ async def duplicate(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> Diagram
         name=copy_name(diagram.name),
         position=await diagram_position_after(db, diagram),
         xml=diagram.xml,
+        kind=diagram.kind,
         preview_svg=preview_svg,
         preview_updated_at=diagram.preview_updated_at if preview_svg is not None else None,
         created_by=user.id,
@@ -169,8 +178,39 @@ async def download_xml(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> Resp
     return Response(
         content=diagram.xml,
         media_type="application/xml; charset=utf-8",
-        headers={"Content-Disposition": content_disposition(diagram.name, ".bpmn")},
+        headers={"Content-Disposition": content_disposition(diagram.name, f".{diagram.kind}")},
     )
+
+
+@router.put("/diagrams/{diagram_id}/content", response_model=ContentOut)
+async def put_content(diagram_id: uuid.UUID, body: ContentIn, user: CurrentUser, db: Db) -> ContentOut:
+    diagram, project, _ = await load_diagram(db, user, diagram_id, Access.edit)
+    if diagram.kind != "dmn":
+        raise bad_request("edited_live")
+    if len(body.xml.encode("utf-8")) > settings.max_xml_bytes:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail="xml_too_large")
+    try:
+        parse_dmn(body.xml)
+    except InvalidXml as exc:
+        raise bad_request("invalid_dmn") from exc
+    if body.xml != diagram.xml:
+        now = utcnow()
+        last = await db.scalar(
+            select(DiagramVersion.created_at)
+            .where(DiagramVersion.diagram_id == diagram.id)
+            .order_by(DiagramVersion.created_at.desc())
+            .limit(1)
+        )
+        if last is None or (now - last).total_seconds() >= settings.version_interval:
+            await record_version(db, diagram.id, diagram.xml, diagram.updated_by, "auto")
+        diagram.xml = body.xml
+        diagram.content_updated_at = now
+        diagram.updated_at = now
+        diagram.updated_by = user.id
+        touch_project(project, now)
+        await db.commit()
+        await publish(project.id, "content")
+    return ContentOut(content_updated_at=diagram.content_updated_at)
 
 
 @router.put("/diagrams/{diagram_id}/preview", status_code=status.HTTP_204_NO_CONTENT)

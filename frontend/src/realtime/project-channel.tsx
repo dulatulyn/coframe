@@ -48,6 +48,10 @@ export function ProjectChannelProvider({ projectId, children }: { projectId: str
         if (message.type === "presence") setPresence(message.users ?? []);
         else if (message.type === "tree") invalidateTree(qc, projectId);
         else if (message.type === "comments") qc.invalidateQueries({ queryKey: ["comments"] });
+        else if (message.type === "content") {
+          qc.invalidateQueries({ queryKey: ["content"] });
+          invalidateTree(qc, projectId);
+        }
         else if (message.type === "project") {
           qc.invalidateQueries({ queryKey: keys.project(projectId) });
           invalidateTree(qc, projectId);

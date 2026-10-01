@@ -34,3 +34,11 @@ declare module "bpmn-js-differ" {
   };
   export function diff(a: unknown, b: unknown): Changes;
 }
+declare module "dmn-js/lib/Modeler" {
+  const DmnModeler: any;
+  export default DmnModeler;
+}
+declare module "dmn-js/lib/Viewer" {
+  const DmnViewer: any;
+  export default DmnViewer;
+}

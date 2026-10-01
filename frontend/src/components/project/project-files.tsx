@@ -24,6 +24,7 @@ import {
   RotateCcw,
   Search,
   Sparkles,
+  Table2,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -221,9 +222,9 @@ export function ProjectFiles({
   const breadcrumb: FolderModel[] = [];
   for (let f = current; f; f = f.parentId ? folderById.get(f.parentId) ?? null : null) breadcrumb.unshift(f);
 
-  async function addDiagram() {
+  async function addDiagram(kind: "bpmn" | "dmn" = "bpmn") {
     try {
-      const d = await createDiagram.mutateAsync({ folderId });
+      const d = await createDiagram.mutateAsync({ folderId, kind });
       router.push(`/p/${projectId}/${d.id}`);
     } catch (e) {
       toast.error(errorMessage(e));
@@ -325,7 +326,7 @@ export function ProjectFiles({
 
       {canEdit && (
         <div className="flex gap-2 px-4">
-          <Button className="flex-1" onClick={addDiagram} disabled={createDiagram.isPending}>
+          <Button className="flex-1" onClick={() => addDiagram()} disabled={createDiagram.isPending}>
             <Plus className="size-4" strokeWidth={2.25} /> New diagram
           </Button>
           <Button variant="outline" size="icon" aria-label="Generate with AI" title="Generate with AI" onClick={() => setGenerating(true)}>
@@ -338,6 +339,9 @@ export function ProjectFiles({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onSelect={() => void addDiagram("dmn")}>
+                <Table2 /> New decision table
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setNewFolder(true)}>
                 <FolderPlus /> New folder
               </DropdownMenuItem>
@@ -561,6 +565,7 @@ export function ProjectFiles({
                       <span className="w-4 pt-1 text-right font-mono text-[12px] text-slate">{i + 1}</span>
                       <span className="min-w-0 flex-1">
                         <DiagramThumb
+                          kind={d.kind}
                           diagramId={d.id}
                           version={d.previewUpdatedAt}
                           seed={i}
@@ -602,6 +607,7 @@ export function ProjectFiles({
                     {...dragProps}
                   >
                     <DiagramThumb
+                      kind={d.kind}
                       diagramId={d.id}
                       version={d.previewUpdatedAt}
                       seed={i}

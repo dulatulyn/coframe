@@ -74,6 +74,7 @@ export type DiagramMeta = {
   previewUpdatedAt: string | null;
   pinnedAt: string | null;
   updatedBy: PublicUser | null;
+  kind?: "bpmn" | "dmn";
 };
 
 export type Diagram = DiagramMeta & { access: Access; generation: number; publicToken?: string | null };
@@ -91,7 +92,7 @@ export type Comment = {
 };
 
 export type ProcessMap = {
-  diagrams: { id: string; name: string; previewUpdatedAt: string | null }[];
+  diagrams: { id: string; name: string; kind: "bpmn" | "dmn"; previewUpdatedAt: string | null }[];
   links: { source: string; target: string; label: string; kind: "call" | "decision" }[];
 };
 

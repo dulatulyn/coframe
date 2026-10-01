@@ -8,6 +8,7 @@ from app.schemas.common import Schema
 class MapDiagram(Schema):
     id: uuid.UUID
     name: str
+    kind: str
     preview_updated_at: datetime | None
 
 

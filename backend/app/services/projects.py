@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bpmn.templates import new_diagram_xml
+from app.bpmn.templates import new_decision_xml, new_diagram_xml
 from app.db import utcnow
 from app.models import Access, Diagram, Jam, JamParticipant, Project, Role, User, WorkspaceMember
 from app.permissions import ProjectAccess, not_found, role_access
@@ -15,6 +15,7 @@ from app.services.common import fetch_dict, public_user
 from app.services.tree import next_diagram_position
 
 DEFAULT_DIAGRAM_NAME = "Untitled diagram"
+DEFAULT_DECISION_NAME = "Untitled decision"
 
 
 def effective_access(
@@ -149,6 +150,7 @@ async def create_diagram(
     name: str = DEFAULT_DIAGRAM_NAME,
     folder_id: uuid.UUID | None = None,
     xml: str | None = None,
+    kind: str = "bpmn",
 ) -> Diagram:
     now = utcnow()
     diagram = Diagram(
@@ -156,7 +158,8 @@ async def create_diagram(
         folder_id=folder_id,
         name=name,
         position=await next_diagram_position(db, project.id, folder_id),
-        xml=xml if xml is not None else new_diagram_xml(),
+        xml=xml if xml is not None else new_decision_xml(name) if kind == "dmn" else new_diagram_xml(),
+        kind=kind,
         created_by=user.id,
         updated_by=user.id,
         updater=user,

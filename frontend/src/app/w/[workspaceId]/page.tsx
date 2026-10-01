@@ -114,6 +114,7 @@ export default function WorkspaceHome() {
                 className="flex items-center gap-4 rounded-2xl p-2 transition-colors hover:bg-fog"
               >
                 <DiagramThumb
+                  kind={d.kind}
                   diagramId={d.id}
                   version={d.previewUpdatedAt}
                   seed={i}

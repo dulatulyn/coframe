@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/client";
 import { useDiagram, useMe, useTree } from "@/lib/api/hooks";
 
 const DiagramEditor = dynamic(() => import("@/editor/diagram-editor").then((m) => m.DiagramEditor), { ssr: false });
+const DecisionEditor = dynamic(() => import("@/editor/decision-editor").then((m) => m.DecisionEditor), { ssr: false });
 
 export default function DiagramPage() {
   const { projectId, diagramId } = useParams<{ projectId: string; diagramId: string }>();
@@ -25,5 +26,6 @@ export default function DiagramPage() {
   }, [error, projectId, router]);
 
   if (!diagram || !tree || !me) return <div className="dot-grid absolute inset-0" />;
+  if (diagram.kind === "dmn") return <DecisionEditor key={`${diagram.id}:${diagram.generation}`} diagram={diagram} project={tree.project} me={me} />;
   return <DiagramEditor key={`${diagram.id}:${diagram.generation}`} diagram={diagram} project={tree.project} me={me} />;
 }
