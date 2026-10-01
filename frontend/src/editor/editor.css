@@ -306,3 +306,28 @@
   bottom: 96px;
   right: 16px;
 }
+
+.djs-element.coframe-diff-added .djs-visual > :first-child {
+  stroke: #30a46c !important;
+  fill: #e9f9ee !important;
+}
+
+.djs-connection.coframe-diff-added .djs-visual > path {
+  stroke: #30a46c !important;
+}
+
+.djs-element.coframe-diff-changed .djs-visual > :first-child {
+  stroke: #f5a524 !important;
+  fill: #fff4dc !important;
+}
+
+.djs-connection.coframe-diff-changed .djs-visual > path {
+  stroke: #f5a524 !important;
+}
+
+.djs-element.coframe-diff-moved .djs-outline {
+  visibility: visible;
+  stroke: #3e63dd;
+  stroke-width: 2px;
+  stroke-dasharray: 4 3;
+}
