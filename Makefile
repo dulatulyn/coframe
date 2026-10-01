@@ -27,4 +27,4 @@ test:
 
 lint:
 	cd backend && uv run ruff check app tests scripts
-	cd frontend && npx tsc --noEmit && npx eslint src
+	cd frontend && npm run typecheck && npx eslint .
