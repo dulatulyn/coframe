@@ -70,15 +70,28 @@ def pick_latest(names: list[str], tier: Tier) -> str | None:
 
 
 class Gemini:
-    def __init__(self, project: str, location: str) -> None:
+    def __init__(self, project: str | None, location: str, api_key: str | None = None) -> None:
         from google import genai
 
         self.project = project
-        self.client = genai.Client(enterprise=True, project=project, location=location)
+        self.api_key = api_key
+        if api_key:
+            self.client = genai.Client(enterprise=True, api_key=api_key)
+        else:
+            self.client = genai.Client(enterprise=True, project=project, location=location)
         self._models: dict[Tier, str] = {}
         self._lock = asyncio.Lock()
 
     async def _available(self) -> list[str]:
+        if self.api_key:
+            async with httpx.AsyncClient(timeout=20) as http:
+                response = await http.get(
+                    "https://aiplatform.googleapis.com/v1beta1/publishers/google/models",
+                    params={"pageSize": 300, "key": self.api_key},
+                )
+                response.raise_for_status()
+            return [m.get("name", "").rsplit("/", 1)[-1] for m in response.json().get("publisherModels", [])]
+
         import google.auth
         from google.auth.transport.requests import Request
 
@@ -170,12 +183,16 @@ class Gemini:
 _provider: Provider | None = None
 
 
+def ai_configured() -> bool:
+    return bool(settings.gemini_api_key or settings.gcp_project)
+
+
 def provider() -> Provider:
     global _provider
     if _provider is None:
-        if not settings.gcp_project:
+        if not ai_configured():
             raise AiUnavailable("ai_not_configured")
-        _provider = Gemini(settings.gcp_project, settings.gcp_location)
+        _provider = Gemini(settings.gcp_project, settings.gcp_location, settings.gemini_api_key)
     return _provider
 
 

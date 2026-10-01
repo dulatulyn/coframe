@@ -69,6 +69,7 @@ async def test_guests_cannot_use_ai(fake_ai, make_user: MakeUser):
 
 async def test_ai_is_off_without_a_cloud_project(make_user: MakeUser, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings, "gcp_project", None)
+    monkeypatch.setattr(settings, "gemini_api_key", None)
     owner = await make_user()
     diagram_id, _ = await diagram_with_start(owner)
     r = await owner.client.post(f"/api/diagrams/{diagram_id}/ai/review", json={})

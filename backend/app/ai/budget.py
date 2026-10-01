@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.llm import Usage
+from app.ai.llm import Usage, ai_configured
 from app.config import settings
 from app.db import utcnow
 from app.models import AiUsage, User
@@ -46,7 +46,7 @@ async def used_today(db: AsyncSession, user: User, kind: Kind) -> int:
 def availability(user: User) -> str | None:
     if user.is_guest:
         return "sign_up_for_ai"
-    if not settings.gcp_project:
+    if not ai_configured():
         return "ai_not_configured"
     return None
 

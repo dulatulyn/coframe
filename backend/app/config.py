@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     max_svg_bytes: int = 2 * 1024 * 1024
 
     gcp_project: str | None = None
+    gemini_api_key: str | None = None
     gcp_location: str = "global"
     ai_model_smart: str = "auto"
     ai_model_fast: str = "auto"
