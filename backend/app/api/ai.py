@@ -9,15 +9,17 @@ from fastapi.responses import StreamingResponse
 from app.ai import budget, prompts
 from app.ai.checks import Finding, run_checks
 from app.ai.describe import describe
+from app.ai.generate import InvalidProcess, outline, process_xml
 from app.ai.graph import Graph, build_graph
 from app.ai.llm import AiFailed, AiUnavailable, Usage, provider
 from app.ai.ops import InvalidOps, Op, validate_ops
-from app.ai.results import AiReview, AiSuggestions
+from app.ai.results import AiProcess, AiReview, AiSuggestions
 from app.ai.simulate import Outcome, evaluate
 from app.bpmn.xmlsafe import InvalidXml
 from app.db import SessionLocal
 from app.deps import CurrentUser, Db
-from app.permissions import load_diagram
+from app.models import Access
+from app.permissions import load_diagram, load_project
 from app.schemas.ai import (
     AiLimitOut,
     AiStatusOut,
@@ -25,6 +27,8 @@ from app.schemas.ai import (
     CheckOut,
     FindingOut,
     FixOut,
+    GenerateIn,
+    GenerateOut,
     ImprovementOut,
     IssueOut,
     OpOut,
@@ -236,4 +240,52 @@ async def ai_chat(diagram_id: uuid.UUID, body: ChatIn, user: CurrentUser, db: Db
         events(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+REPAIR_ROUNDS = 2
+
+
+@router.post("/projects/{project_id}/ai/generate", response_model=GenerateOut)
+async def ai_generate(project_id: uuid.UUID, body: GenerateIn, user: CurrentUser, db: Db) -> GenerateOut:
+    await load_project(db, user, project_id, Access.edit)
+    await budget.ensure_allowed(db, user, "generate")
+    language = body.language[:40]
+    model = provider()
+
+    async def ask(system: str, prompt: str, kind: str) -> AiProcess:
+        try:
+            result, usage = await model.generate_json("smart", system, prompt, AiProcess)
+        except Exception as exc:
+            raise await _call_failed(db, user, "generate", exc) from exc
+        await budget.record(db, user, kind, usage)
+        return result
+
+    process = await ask(
+        prompts.GENERATE, f"Description:\n{body.description}\n\nWrite labels in {language}.", "generate"
+    )
+    rounds = 0
+    while True:
+        try:
+            xml = process_xml(process)
+            findings = run_checks(build_graph(xml))
+            problems = [f"{f.severity} {f.rule}: {f.message}" for f in findings if f.severity != "info"]
+        except (InvalidProcess, InvalidXml) as exc:
+            xml, findings, problems = None, [], [f"error: {exc}"]
+        if not problems or rounds >= REPAIR_ROUNDS:
+            break
+        rounds += 1
+        listed = "\n".join(f"- {p}" for p in problems)
+        process = await ask(
+            prompts.REPAIR,
+            f"Process:\n{outline(process)}\n\nProblems:\n{listed}\n\nWrite labels in {language}.",
+            "generate_fix",
+        )
+    if xml is None:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="ai_failed")
+    return GenerateOut(
+        name=process.name[:200] or "Generated process",
+        xml=xml,
+        findings=findings_out(findings),
+        rounds=rounds,
     )

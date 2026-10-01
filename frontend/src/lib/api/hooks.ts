@@ -6,6 +6,7 @@ import { clearLocalCopies } from "@/editor/collab/local-copy";
 
 import { api, ApiError } from "./client";
 import type {
+  AiGenerated,
   AiReview,
   AiStatus,
   AiSuggestion,
@@ -574,4 +575,13 @@ export async function streamAiChat(
       if (payload.delta) onDelta(payload.delta);
     }
   }
+}
+
+export function useAiGenerate(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ description, language }: { description: string; language: string }) =>
+      api<AiGenerated>(`/projects/${projectId}/ai/generate`, { method: "POST", body: { description, language } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
+  });
 }

@@ -38,3 +38,25 @@ class AiSuggestion(BaseModel):
 
 class AiSuggestions(BaseModel):
     suggestions: list[AiSuggestion]
+
+
+class GenNode(BaseModel):
+    id: str = Field(description="Short unique id such as Task_check or Gateway_ok.")
+    type: str = Field(description="BPMN type such as bpmn:StartEvent, bpmn:UserTask, bpmn:ExclusiveGateway.")
+    name: str
+    event: str | None = Field(default=None, description="Trigger for events: message, timer, error, ...")
+    attach_to: str | None = Field(default=None, description="Activity id, only for bpmn:BoundaryEvent.")
+
+
+class GenFlow(BaseModel):
+    id: str
+    source: str
+    target: str
+    name: str | None = Field(default=None, description="Label, e.g. the answer of a decision.")
+    default: bool = False
+
+
+class AiProcess(BaseModel):
+    name: str = Field(description="Short name of the diagram.")
+    nodes: list[GenNode]
+    flows: list[GenFlow]

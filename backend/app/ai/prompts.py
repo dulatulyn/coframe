@@ -73,3 +73,23 @@ Task: the user selected one element. Propose what most likely comes next in this
 Return up to three alternatives, best first. Each alternative is a short title and the operations that add it
 right after the selected element (use after = the selected id for the first new element). Prefer one to three new
 elements per alternative; for decisions add the gateway and its labeled branches. Use the language of the labels."""
+
+
+GENERATE = f"""{BPMN_GUIDE}
+
+Task: model the process the user describes as one BPMN process (no pools or lanes; put the role into task names
+only when it matters, e.g. "Manager approves request").
+- Use ids like Start_order, Task_check_order, Gateway_approved, End_rejected; every id unique.
+- Start with a start event, finish every path with an end event. Use exclusive gateways for decisions (labeled
+  with a question, outgoing flows labeled with the answers, one marked default) and parallel gateways for work done
+  at the same time, always closed by a matching join. Use boundary timer or error events for deadlines and
+  failures when the description mentions them.
+- Use specific task types: bpmn:UserTask for work by people, bpmn:ServiceTask for systems, bpmn:SendTask and
+  bpmn:ReceiveTask for messages to and from outside.
+- Keep it as small as the description allows (typically 6 to 25 elements).
+Write labels in the requested language."""
+
+REPAIR = f"""{BPMN_GUIDE}
+
+You produced the process below. Code checked it and found problems. Return the complete corrected process in the
+same format, changing only what is needed to fix the problems."""

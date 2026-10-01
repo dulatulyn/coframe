@@ -22,6 +22,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Sparkles,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,8 @@ import { useProjectUi } from "@/lib/project-ui";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useProjectChannel } from "@/realtime/project-channel";
+
+import { GenerateDialog } from "./generate-dialog";
 
 type Rename = { kind: "folder" | "diagram"; id: string; name: string } | null;
 type ItemAction =
@@ -166,6 +169,7 @@ export function ProjectFiles({
   const [showTrash, setShowTrash] = useState(false);
   const [rename, setRename] = useState<Rename>(null);
   const [newFolder, setNewFolder] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -314,6 +318,9 @@ export function ProjectFiles({
         <div className="flex gap-2 px-4">
           <Button className="flex-1" onClick={addDiagram} disabled={createDiagram.isPending}>
             <Plus className="size-4" strokeWidth={2.25} /> New diagram
+          </Button>
+          <Button variant="outline" size="icon" aria-label="Generate with AI" title="Generate with AI" onClick={() => setGenerating(true)}>
+            <Sparkles className="size-[18px]" strokeWidth={1.75} />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -624,6 +631,7 @@ export function ProjectFiles({
         </button>
       </div>
 
+      <GenerateDialog projectId={projectId} folderId={folderId} open={generating} onOpenChange={setGenerating} />
       <NameDialog
         open={newFolder}
         title="New folder"

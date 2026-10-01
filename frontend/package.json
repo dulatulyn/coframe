@@ -14,6 +14,7 @@
   "dependencies": {
     "@bpmn-io/properties-panel": "^3.56.0",
     "@tanstack/react-query": "^5.104.0",
+    "bpmn-auto-layout": "^1.3.0",
     "bpmn-js": "^18.30.1",
     "bpmn-js-bpmnlint": "^0.24.0",
     "bpmn-js-color-picker": "^0.7.2",

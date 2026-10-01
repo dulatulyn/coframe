@@ -14,3 +14,6 @@ declare module "bpmn-js-color-picker" {
   const ColorPickerModule: Record<string, unknown>;
   export default ColorPickerModule;
 }
+declare module "bpmn-auto-layout" {
+  export function layoutProcess(xml: string): Promise<string>;
+}

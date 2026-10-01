@@ -44,6 +44,31 @@ The frontend proxies `/api/*` to the API (`API_URL`, default `http://localhost:8
 WebSockets directly (`NEXT_PUBLIC_WS_URL`, default `ws://localhost:8100` in development). In
 production put both behind one domain (e.g. a reverse proxy sending `/api` to FastAPI).
 
+## Assistant
+
+The editor has an assistant panel (✦ Assistant in the top bar):
+
+- **Check** — exact rules computed from the model by code: missing start/end events, disconnected and
+  unreachable elements, dead ends, endless loops, implicit splits and joins, deadlocks between exclusive
+  splits and parallel joins, merges without synchronization, unlabeled decisions, event-based gateway
+  targets, message flows inside a pool, unmatched link events and more. Available to everyone.
+- **Review** — Gemini reads the whole model together with the exact findings, explains what matters and why,
+  and proposes fixes as editor operations. Every proposal is simulated on a copy of the model and checked
+  again; proposals that break the model are discarded, the rest show what they fix and what they leave.
+  A fix applies as one change (one undo step) and syncs to everyone in the diagram.
+- **Ask** — a chat about the diagram, grounded in its structure; mentioned elements are clickable.
+- **Next step** — the ✦ entry in an element's context pad suggests up to three continuations (Enter adds).
+- **Generate** — ✦ in the files panel drafts a new diagram from a description; the checks find problems,
+  the model corrects them (up to two rounds) and bpmn-auto-layout lays the result out.
+
+AI features are for registered users only. They run on Gemini through Google Cloud (Vertex AI / Agent
+Platform) with Application Default Credentials: locally after `gcloud auth application-default login`, on a
+Google Cloud VM through its service account (role *Vertex AI User*, access scope *cloud-platform*). Set
+`GCP_PROJECT` (and optionally `GCP_LOCATION`, `AI_MODEL_SMART`, `AI_MODEL_FAST`; `auto` picks the newest Gemini
+Pro / Flash). Spending is capped in code: every request is recorded with its token counts and estimated price,
+`AI_MONTHLY_BUDGET_USD` stops all AI calls for the rest of the month once reached, and daily per-user limits
+apply (`AI_DAILY_REVIEWS`, `AI_DAILY_MESSAGES`, `AI_DAILY_SUGGESTIONS`, `AI_DAILY_GENERATIONS`).
+
 ## Tests
 
 ```bash

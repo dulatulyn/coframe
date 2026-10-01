@@ -1,5 +1,7 @@
 from typing import Literal
 
+from pydantic import Field
+
 from app.schemas.common import Schema
 
 
@@ -98,3 +100,15 @@ class AiStatusOut(Schema):
     available: bool
     reason: str | None
     limits: dict[str, AiLimitOut]
+
+
+class GenerateIn(Schema):
+    description: str = Field(min_length=3, max_length=4000)
+    language: str = "English"
+
+
+class GenerateOut(Schema):
+    name: str
+    xml: str
+    findings: list[FindingOut]
+    rounds: int

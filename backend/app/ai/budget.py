@@ -63,7 +63,7 @@ async def ensure_allowed(db: AsyncSession, user: User, kind: Kind) -> None:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="ai_daily_limit")
 
 
-async def record(db: AsyncSession, user: User, kind: Kind, usage: Usage) -> None:
+async def record(db: AsyncSession, user: User, kind: str, usage: Usage) -> None:
     db.add(
         AiUsage(
             user_id=user.id,

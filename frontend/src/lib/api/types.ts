@@ -162,3 +162,5 @@ export type AiStatus = {
 };
 
 export type ChatTurn = { role: "user" | "assistant"; text: string };
+
+export type AiGenerated = { name: string; xml: string; findings: Finding[]; rounds: number };

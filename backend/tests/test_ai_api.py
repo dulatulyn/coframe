@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from app.ai.graph import build_graph
 from app.ai.llm import Usage, pick_latest, set_provider
 from app.ai.ops import InvalidOps, Op, validate_ops
-from app.ai.results import AiReview, AiSuggestions
+from app.ai.results import AiProcess, AiReview, AiSuggestions
 from app.config import settings
 from app.db import utcnow
 from app.models import AiUsage
@@ -20,10 +20,13 @@ class FakeProvider:
         self.review: dict = {"summary": "", "verdict": "solid", "issues": [], "improvements": []}
         self.suggestions: dict = {"suggestions": []}
         self.chunks: list[str] = []
+        self.processes: list[dict] = []
         self.prompts: list[str] = []
 
     async def generate_json(self, tier, system, prompt, schema):
         self.prompts.append(prompt)
+        if schema is AiProcess:
+            return schema.model_validate(self.processes.pop(0)), Usage("gemini-test-pro", 1000, 1200)
         data = self.review if schema is AiReview else self.suggestions
         return schema.model_validate(data), Usage(
             f"gemini-test-{'pro' if tier == 'smart' else 'flash'}", 2000, 800
@@ -252,3 +255,54 @@ def test_latest_model_is_picked_by_version():
     assert pick_latest(names, "fast") == "gemini-3.8-flash"
     assert pick_latest([], "fast") is None
     assert AiSuggestions.model_validate({"suggestions": []}).suggestions == []
+
+
+async def test_generation_repairs_problems_found_by_the_checks(fake_ai, make_user: MakeUser, db):
+    owner = await make_user()
+    project = await create_project(owner)
+    draft = {
+        "name": "Leave request",
+        "nodes": [
+            {"id": "Start", "type": "bpmn:StartEvent", "name": "Request submitted"},
+            {"id": "Approve", "type": "bpmn:UserTask", "name": "Manager approves"},
+        ],
+        "flows": [{"id": "f1", "source": "Start", "target": "Approve"}],
+    }
+    fixed = {
+        "name": "Leave request",
+        "nodes": draft["nodes"]
+        + [
+            {"id": "Ok", "type": "bpmn:ExclusiveGateway", "name": "Approved?"},
+            {"id": "Done", "type": "bpmn:EndEvent", "name": "Leave granted"},
+            {"id": "No", "type": "bpmn:EndEvent", "name": "Leave refused"},
+        ],
+        "flows": [
+            {"id": "f1", "source": "Start", "target": "Approve"},
+            {"id": "f2", "source": "Approve", "target": "Ok"},
+            {"id": "f3", "source": "Ok", "target": "Done", "name": "yes"},
+            {"id": "f4", "source": "Ok", "target": "No", "name": "no", "default": True},
+        ],
+    }
+    fake_ai.processes = [draft, fixed]
+    r = await owner.client.post(
+        f"/api/projects/{project['id']}/ai/generate",
+        json={"description": "Employees request leave; a manager decides."},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["name"], body["rounds"]) == ("Leave request", 1)
+    assert "no-implicit-end" in fake_ai.prompts[-1] or "end-event-required" in fake_ai.prompts[-1]
+    assert 'default="f4"' in body["xml"] and 'name="Approved?"' in body["xml"]
+    assert [f for f in body["findings"] if f["severity"] != "info"] == []
+    kinds = sorted(k for (k,) in (await db.execute(select(AiUsage.kind))).all())
+    assert kinds == ["generate", "generate_fix"]
+
+
+async def test_generation_needs_edit_access(fake_ai, make_user: MakeUser):
+    owner = await make_user()
+    project = await create_project(owner)
+    stranger = await make_user()
+    r = await stranger.client.post(
+        f"/api/projects/{project['id']}/ai/generate", json={"description": "Anything at all"}
+    )
+    assert r.status_code in (403, 404)
