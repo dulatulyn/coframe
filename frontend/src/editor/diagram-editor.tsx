@@ -41,6 +41,7 @@ import { VersionHistoryDialog } from "./ui/version-history";
 import type { ViewMode } from "./views/modes";
 import { MetricsPanel } from "./views/metrics-panel";
 import { PathsPanel } from "./views/paths-panel";
+import { PresentMode } from "./views/present-mode";
 import { RolesPanel } from "./views/roles-panel";
 import { ViewBanner } from "./views/view-banner";
 
@@ -264,10 +265,11 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   }, [restored]);
 
   return (
-    <div className="coframe-editor absolute inset-0 isolate overflow-hidden bg-canvas">
+    <div className={cn("coframe-editor isolate overflow-hidden bg-canvas", view === "present" ? "fixed inset-0 z-[60]" : "absolute inset-0")}>
       <div ref={canvasRef} className="absolute inset-0" />
       <div ref={overlayRef} className="pointer-events-none absolute inset-0 z-10 overflow-hidden" />
 
+      {view !== "present" && (
       <EditorTopBar
         diagram={diagram}
         project={project}
@@ -291,6 +293,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         view={view}
         onView={editor ? setView : undefined}
       />
+      )}
 
       <div
         className={cn(
@@ -308,7 +311,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
             className="pointer-events-auto w-full min-w-0 md:w-auto"
           />
         )}
-        <div className="pointer-events-auto flex shrink-0 items-center gap-2">
+        <div className={cn("pointer-events-auto flex shrink-0 items-center gap-2", view === "present" && "hidden")}>
           {editor && hasService(editor, "minimap") && (
             <button
               type="button"
@@ -341,7 +344,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       </div>
 
-      {editor && !editing && <ViewBanner mode={view} onExit={() => setView("edit")} />}
+      {editor && !editing && view !== "present" && <ViewBanner mode={view} onExit={() => setView("edit")} />}
+      {editor && view === "present" && <PresentMode editor={editor} title={diagram.name} onExit={() => setView("edit")} />}
       {editor && view === "paths" && <PathsPanel editor={editor} />}
       {editor && view === "roles" && <RolesPanel editor={editor} readOnly={readOnly} />}
       {editor && view === "metrics" && <MetricsPanel editor={editor} readOnly={readOnly} />}
