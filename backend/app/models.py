@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     LargeBinary,
+    Numeric,
     String,
     Text,
 )
@@ -183,6 +184,19 @@ class DiagramVersion(Base):
     author: Mapped[User | None] = relationship(lazy="joined")
 
 
+class AiUsage(Base):
+    __tablename__ = "ai_usage"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(16))
+    model: Mapped[str] = mapped_column(String(64))
+    input_tokens: Mapped[int] = mapped_column(default=0)
+    output_tokens: Mapped[int] = mapped_column(default=0)
+    cost_usd: Mapped[float] = mapped_column(Numeric(12, 6), default=0)
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+
+
 class Jam(Base):
     __tablename__ = "jams"
 
@@ -212,4 +226,6 @@ class JamParticipant(Base):
 
 Index("ix_diagrams_project_folder", Diagram.project_id, Diagram.folder_id)
 Index("ix_diagram_versions_diagram_created", DiagramVersion.diagram_id, DiagramVersion.created_at)
+Index("ix_ai_usage_created", AiUsage.created_at)
+Index("ix_ai_usage_user_created", AiUsage.user_id, AiUsage.created_at)
 Index("ix_folders_project_parent", Folder.project_id, Folder.parent_id)

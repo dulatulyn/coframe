@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     max_xml_bytes: int = 5 * 1024 * 1024
     max_svg_bytes: int = 2 * 1024 * 1024
 
+    gcp_project: str | None = None
+    gcp_location: str = "global"
+    ai_model_smart: str = "auto"
+    ai_model_fast: str = "auto"
+    ai_monthly_budget_usd: float = 80.0
+    ai_price_smart_input: float = 2.5
+    ai_price_smart_output: float = 15.0
+    ai_price_fast_input: float = 0.6
+    ai_price_fast_output: float = 4.0
+    ai_daily_reviews: int = 40
+    ai_daily_messages: int = 150
+    ai_daily_suggestions: int = 400
+    ai_daily_generations: int = 20
+
 
 @lru_cache
 def get_settings() -> Settings:
