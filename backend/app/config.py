@@ -22,6 +22,8 @@ class Settings(BaseSettings):
 
     ydoc_save_delay: float = 1.0
     room_unload_delay: float = 30.0
+    version_interval: float = 600.0
+    versions_kept: int = 300
 
     max_xml_bytes: int = 5 * 1024 * 1024
     max_svg_bytes: int = 2 * 1024 * 1024

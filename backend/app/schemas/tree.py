@@ -58,6 +58,14 @@ class DiagramMeta(Schema):
 
 class DiagramOut(DiagramMeta):
     access: Access
+    generation: int = 0
+
+
+class DiagramVersionOut(Schema):
+    id: uuid.UUID
+    created_at: datetime
+    source: str
+    author: PublicUser | None
 
 
 class RecentDiagram(DiagramMeta):

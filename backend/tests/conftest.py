@@ -12,8 +12,9 @@ import httpx
 import pytest
 from sqlalchemy import text
 
-from app.db import Base, SessionLocal, engine
+from app.db import SessionLocal, engine
 from app.main import app
+from app.models import Base
 from app.ratelimit import guest_limiter, jam_code_limiter, login_limiter, signup_limiter
 
 _counter = itertools.count(1)

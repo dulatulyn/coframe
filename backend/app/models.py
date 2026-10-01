@@ -158,6 +158,7 @@ class Diagram(Base):
     preview_svg: Mapped[str | None] = mapped_column(Text, deferred=True)
     preview_updated_at: Mapped[datetime | None] = mapped_column(Timestamp)
     pinned_at: Mapped[datetime | None] = mapped_column(Timestamp)
+    generation: Mapped[int] = mapped_column(default=0, server_default="0")
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
@@ -167,6 +168,19 @@ class Diagram(Base):
     trashed_with: Mapped[uuid.UUID | None] = mapped_column()
 
     updater: Mapped[User | None] = relationship(foreign_keys=[updated_by], lazy="joined")
+
+
+class DiagramVersion(Base):
+    __tablename__ = "diagram_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    diagram_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("diagrams.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    source: Mapped[str] = mapped_column(String(16))
+    xml: Mapped[str] = mapped_column(Text, deferred=True)
+
+    author: Mapped[User | None] = relationship(lazy="joined")
 
 
 class Jam(Base):
@@ -197,4 +211,5 @@ class JamParticipant(Base):
 
 
 Index("ix_diagrams_project_folder", Diagram.project_id, Diagram.folder_id)
+Index("ix_diagram_versions_diagram_created", DiagramVersion.diagram_id, DiagramVersion.created_at)
 Index("ix_folders_project_parent", Folder.project_id, Folder.parent_id)

@@ -190,3 +190,35 @@ async def test_project_channel_presence_and_tree_events(make_user: MakeUser):
 
             await a.send_text(json.dumps({"type": "ping"}))
             assert (await next_message(a, "pong")) == {"type": "pong"}
+
+
+async def test_changes_arriving_while_saving_are_saved_too(make_user: MakeUser, db, monkeypatch):
+    from app.realtime import rooms as rooms_module
+
+    owner, _, diagram_id = await setup_diagram(make_user)
+    async with connected(owner) as client, ydiagram(client, diagram_id) as y:
+        await asyncio.wait_for(y.synced.wait(), 3)
+        room = rooms.get_loaded(uuid.UUID(diagram_id))
+        original = rooms_module.reconstruct_xml
+        injected = []
+
+        def reconstruct_during_edit(elements):
+            if not injected:
+                injected.append(True)
+                process = next(k for k, e in elements.items() if e["t"] == "bpmn:process")
+                with room.doc.transaction():
+                    room.doc.get("elements", type=Map)["Late"] = Map(
+                        {"t": "bpmn:task", "p": process, "o": "zzz", "@name": "Late"}
+                    )
+                room.mark_dirty(uuid.UUID(owner.id))
+            return original(elements)
+
+        monkeypatch.setattr(rooms_module, "reconstruct_xml", reconstruct_during_edit)
+        process = next(k for k, e in y.read().items() if e["t"] == "bpmn:process")
+        with y.doc.transaction():
+            y.elements["Early"] = Map({"t": "bpmn:task", "p": process, "o": "zz", "@name": "Early"})
+        await y.flush()
+        await eventually(lambda: bool(injected) and not room.dirty)
+
+    xml = await db.scalar(select(Diagram.xml).where(Diagram.id == diagram_id))
+    assert 'name="Early"' in xml and 'name="Late"' in xml

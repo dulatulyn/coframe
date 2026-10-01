@@ -61,7 +61,7 @@ async def create(
 @router.get("/diagrams/{diagram_id}", response_model=DiagramOut)
 async def get_diagram(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> DiagramOut:
     diagram, _, access = await load_diagram(db, user, diagram_id)
-    return DiagramOut(**diagram_fields(diagram), access=access.access)
+    return DiagramOut(**diagram_fields(diagram), access=access.access, generation=diagram.generation)
 
 
 @router.patch("/diagrams/{diagram_id}", response_model=DiagramMeta)

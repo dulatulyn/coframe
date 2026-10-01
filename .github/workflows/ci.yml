@@ -39,6 +39,14 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q
+      - name: Migrations match the models
+        env:
+          PGPASSWORD: postgres
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/coframe
+        run: |
+          psql -h localhost -U postgres -c "CREATE DATABASE coframe"
+          uv run alembic upgrade head
+          uv run alembic check
 
   frontend:
     runs-on: ubuntu-latest

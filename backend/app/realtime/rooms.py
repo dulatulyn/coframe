@@ -5,16 +5,17 @@ import contextlib
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Protocol
 
 from pycrdt import Doc, Map, TransactionEvent
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from app.bpmn.flat import flatten_xml, reconstruct_xml
 from app.bpmn.templates import new_diagram_xml
 from app.config import settings
 from app.db import SessionLocal, utcnow
-from app.models import Diagram, Project, User
+from app.models import Diagram, DiagramVersion, Project, User
 from app.realtime.awareness import AwarenessEntry, decode_update, encode_update, with_user
 from app.realtime.encoding import (
     MESSAGE_AWARENESS,
@@ -29,6 +30,7 @@ from app.realtime.encoding import (
     persisted_message,
     sync_message,
 )
+from app.services.versions import record_version
 
 log = logging.getLogger(__name__)
 
@@ -78,9 +80,14 @@ class DiagramRoom:
         self.dirty = False
         self.closed = False
         self._last_editor: uuid.UUID | None = None
+        self._version_editor: uuid.UUID | None = None
+        self._unversioned = False
+        self._last_version_at: datetime | None = None
+        self._last_xml: str | None = None
         self._changes: list[bytes] = []
         self._save_task: asyncio.Task[None] | None = None
         self._save_lock = asyncio.Lock()
+        self._version_lock = asyncio.Lock()
         self.unload_task: asyncio.Task[None] | None = None
         self._subscription = doc.observe(self._on_change)
 
@@ -182,12 +189,17 @@ class DiagramRoom:
         self.dirty = True
         if editor is not None:
             self._last_editor = editor
+            self._version_editor = editor
+            self._unversioned = True
         if self._save_task is None or self._save_task.done():
             self._save_task = asyncio.create_task(self._save_later())
 
     async def _save_later(self) -> None:
-        await asyncio.sleep(settings.ydoc_save_delay)
-        await self.save()
+        while not self.closed:
+            await asyncio.sleep(settings.ydoc_save_delay)
+            await self.save()
+            if not self.dirty:
+                return
 
     async def save(self) -> None:
         async with self._save_lock:
@@ -206,6 +218,8 @@ class DiagramRoom:
                     values["xml"] = reconstruct_xml(elements)
                 except Exception:
                     log.exception("could not rebuild XML for diagram %s", self.diagram_id)
+            if "xml" in values:
+                self._last_xml = values["xml"]
             try:
                 async with SessionLocal() as db:
                     await db.execute(update(Diagram).where(Diagram.id == self.diagram_id).values(**values))
@@ -218,6 +232,27 @@ class DiagramRoom:
                 self.mark_dirty(None)
                 return
         await self.broadcast(persisted_message(state_vector))
+        due = self._last_version_at is None or (now - self._last_version_at).total_seconds() >= (
+            settings.version_interval
+        )
+        if due:
+            await self.snapshot()
+
+    async def snapshot(self) -> None:
+        async with self._version_lock:
+            if not self._unversioned or self._last_xml is None:
+                return
+            xml = self._last_xml
+            self._unversioned = False
+            try:
+                async with SessionLocal() as db:
+                    await record_version(db, self.diagram_id, xml, self._version_editor, "auto")
+                    await db.commit()
+            except Exception:
+                log.exception("could not record a version of diagram %s", self.diagram_id)
+                self._unversioned = True
+                return
+            self._last_version_at = utcnow()
 
     def dispose(self) -> None:
         self.closed = True
@@ -284,8 +319,13 @@ class RoomManager:
                     )
                 )
             ).one()
+            last_version_at = await db.scalar(
+                select(func.max(DiagramVersion.created_at)).where(DiagramVersion.diagram_id == diagram_id)
+            )
         doc, needs_save = build_doc(row.xml, row.ydoc_state)
         room = DiagramRoom(self, diagram_id, row.project_id, doc)
+        room._last_version_at = last_version_at
+        room._last_xml = row.xml
         if needs_save:
             room.mark_dirty(None)
         return room
@@ -299,14 +339,17 @@ class RoomManager:
         if room.connections:
             return
         await room.save()
+        await room.snapshot()
         if not room.connections and self._rooms.get(room.diagram_id) is room:
             del self._rooms[room.diagram_id]
             room.dispose()
 
-    async def flush(self, diagram_id: uuid.UUID) -> None:
+    async def flush(self, diagram_id: uuid.UUID, *, snapshot: bool = False) -> None:
         room = self._rooms.get(diagram_id)
         if room is not None:
             await room.save()
+            if snapshot:
+                await room.snapshot()
 
     async def close_diagram(self, diagram_id: uuid.UUID, code: int, reason: str) -> None:
         room = self._rooms.pop(diagram_id, None)
@@ -334,6 +377,7 @@ class RoomManager:
     async def shutdown(self) -> None:
         for room in list(self._rooms.values()):
             await room.save()
+            await room.snapshot()
             room.dispose()
             await room.close_all(1001, "server_shutdown")
         self._rooms.clear()

@@ -11,10 +11,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+from app import models
 from app.config import settings
-from app.db import Base
 
-target_metadata = Base.metadata
+target_metadata = models.Base.metadata
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 
