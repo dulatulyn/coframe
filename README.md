@@ -78,6 +78,8 @@ deploy/compose.yml      services and volumes
 deploy/caddy/           reverse proxy
 deploy/provision.sh     one-time VM setup: Docker, swap
 deploy/deploy.sh        ships the current commit to the VM and restarts the stack
+deploy/verify-backup.sh restores the newest backup into a scratch database (run on the VM)
+deploy/pull-backups.sh  copies the backups from the VM
 ```
 
 First deployment:
@@ -94,6 +96,29 @@ pushes to `main` are deployed with the same script. It needs the repository secr
 
 For Google sign-in in production add `https://your.domain/api/auth/google/callback` to the
 OAuth client's authorized redirect URIs.
+
+### Keeping data safe
+
+- **Every edit is saved continuously.** The server writes a diagram about a second after each
+  change and keeps writing while changes arrive. Browsers also keep a local copy (IndexedDB), so
+  work done offline or in a tab that lost its connection is sent once it reconnects.
+- **Version history.** Every diagram keeps snapshots of its content (about every ten minutes of
+  editing, when everyone leaves, and before a restore). Any version can be previewed, downloaded or
+  restored from the editor; restoring is itself undoable.
+- **Database backups.** The `backup` service dumps PostgreSQL every 6 hours into `~/coframe/backups`
+  on the VM and keeps the last 28 dumps (`BACKUP_EVERY` / `BACKUP_KEEP` in the env file).
+  `deploy/verify-backup.sh` (run on the VM) restores the newest dump into a scratch database and
+  compares row counts; `deploy/pull-backups.sh` copies the dumps to your machine.
+- **Off-site copies.** Add a snapshot schedule to the VM's disk in Google Cloud (Compute Engine →
+  Snapshots → Snapshot schedules) so a lost VM can be recreated.
+
+Restoring a dump on the VM:
+
+```bash
+cd ~/coframe
+docker compose --env-file .env -f src/deploy/compose.yml exec -T db \
+  pg_restore -U coframe -d coframe --clean --if-exists --no-owner < backups/coframe-<timestamp>.dump
+```
 
 ## Layout
 

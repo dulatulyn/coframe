@@ -41,6 +41,36 @@ services:
     depends_on:
       - api
 
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: coframe
+      PGDATABASE: coframe
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_EVERY: ${BACKUP_EVERY:-21600}
+      BACKUP_KEEP: ${BACKUP_KEEP:-28}
+    volumes:
+      - ${BACKUP_DIR:-../../backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          name="/backups/coframe-$$(date -u +%Y%m%d-%H%M%S).dump"
+          if pg_dump --format=custom --file="$$name.partial" && mv "$$name.partial" "$$name"; then
+            echo "backup written: $$name"
+          else
+            rm -f "$$name.partial"
+            echo "backup failed" >&2
+          fi
+          ls -1t /backups/coframe-*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
+          sleep "$$BACKUP_EVERY"
+        done
+
   caddy:
     build: ./caddy
     restart: unless-stopped
