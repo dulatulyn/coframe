@@ -28,11 +28,12 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       import("diagram-js-minimap"),
       import("bpmn-js-color-picker"),
     ]);
+  const { SuggestPadModule } = await import("./ai/suggest-pad");
   return new Modeler({
     container,
     bpmnRenderer: renderer,
     minimap: { open: false },
-    additionalModules: [CreateAppendAnythingModule, GridModule, MinimapModule, ColorPickerModule],
+    additionalModules: [CreateAppendAnythingModule, GridModule, MinimapModule, ColorPickerModule, SuggestPadModule],
   });
 }
 

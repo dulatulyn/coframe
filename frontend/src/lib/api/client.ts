@@ -63,6 +63,14 @@ export function errorMessage(error: unknown): string {
     xml_too_large: "The file is too large (5 MB max).",
     jam_not_found: "No live jam with this code. Check the code or ask the host for a new one.",
     not_in_trash: "Move it to the trash first.",
+    sign_up_for_ai: "Sign up to use the assistant.",
+    ai_not_configured: "The assistant isn't set up on this server yet.",
+    ai_budget_exhausted: "The assistant has used this month's budget. It will be back next month.",
+    ai_daily_limit: "You've reached today's limit for the assistant. Try again tomorrow.",
+    ai_failed: "The assistant couldn't answer. Try again in a moment.",
+    diagram_too_large_for_ai: "This diagram is too large for the assistant.",
+    element_not_found: "Select an element in the diagram first.",
+    sign_up_first: "Create an account first.",
   };
   if (messages[error.code]) return messages[error.code];
   if (error.status === 404) return "Not found. It may have been deleted.";

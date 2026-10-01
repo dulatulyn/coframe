@@ -114,3 +114,51 @@ export type JamPreview = {
 export type RecentDiagram = DiagramMeta & { projectName: string; workspaceId: string; workspaceName: string };
 
 export type SearchResults = { projects: Project[]; diagrams: RecentDiagram[] };
+
+export type Severity = "error" | "warning" | "info";
+
+export type Finding = { rule: string; severity: Severity; message: string; elements: string[] };
+
+export type CheckResult = { findings: Finding[]; elementCount: number; flowCount: number };
+
+export type AiOp = {
+  op: "add" | "insert" | "connect" | "rename" | "retype" | "remove" | "set_default" | "label_flow";
+  ref?: string | null;
+  type?: string | null;
+  event?: string | null;
+  name?: string | null;
+  after?: string | null;
+  attachTo?: string | null;
+  source?: string | null;
+  target?: string | null;
+  element?: string | null;
+  flow?: string | null;
+};
+
+export type AiIssue = {
+  title: string;
+  severity: Severity;
+  explanation: string;
+  elements: string[];
+  fix: { title: string; ops: AiOp[]; resolves: string[]; sideEffects: string[] } | null;
+};
+
+export type AiImprovement = { title: string; rationale: string; ops: AiOp[]; resolves: string[]; sideEffects: string[] };
+
+export type AiReview = {
+  summary: string;
+  verdict: "solid" | "needs_work" | "broken";
+  issues: AiIssue[];
+  improvements: AiImprovement[];
+  findings: Finding[];
+};
+
+export type AiSuggestion = { title: string; ops: AiOp[]; sideEffects: string[] };
+
+export type AiStatus = {
+  available: boolean;
+  reason: string | null;
+  limits: Record<"review" | "chat" | "suggest" | "generate", { used: number; limit: number }>;
+};
+
+export type ChatTurn = { role: "user" | "assistant"; text: string };

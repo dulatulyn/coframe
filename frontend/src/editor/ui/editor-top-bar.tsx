@@ -13,6 +13,7 @@ import {
   PanelLeft,
   Redo2,
   Share2,
+  Sparkles,
   Undo2,
 } from "lucide-react";
 import Link from "next/link";
@@ -57,6 +58,8 @@ export function EditorTopBar({
   onHistory,
   onMinimap,
   onShortcuts,
+  assistantOpen,
+  onAssistant,
 }: {
   diagram: Diagram;
   project: Project;
@@ -73,6 +76,8 @@ export function EditorTopBar({
   onHistory?: () => void;
   onMinimap?: () => void;
   onShortcuts?: () => void;
+  assistantOpen?: boolean;
+  onAssistant?: () => void;
 }) {
   const { open: filesOpen, setOpen: setFilesOpen } = useFilesPanel();
   const [shareOpen, setShareOpen] = useState(false);
@@ -193,6 +198,21 @@ export function EditorTopBar({
         {project.activeJam && (
           <button type="button" onClick={() => setShareOpen(true)} className="rounded-full">
             <JamChip code={project.activeJam.code} className="max-sm:[&>span:last-child]:hidden" />
+          </button>
+        )}
+        {onAssistant && (
+          <button
+            type="button"
+            aria-label="Assistant"
+            aria-pressed={assistantOpen}
+            title="Assistant: check and review this diagram"
+            onClick={onAssistant}
+            className={cn(
+              "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[14px] font-medium transition-colors sm:px-3",
+              assistantOpen ? "bg-ink text-paper hover:bg-ink/85" : "hover:bg-fog",
+            )}
+          >
+            <Sparkles className="size-4" /> <span className="max-lg:hidden">Assistant</span>
           </button>
         )}
         {onExport && (

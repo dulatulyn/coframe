@@ -33,6 +33,8 @@ class OpOut(Schema):
 class FixOut(Schema):
     title: str
     ops: list[OpOut]
+    resolves: list[str] = []
+    side_effects: list[str] = []
 
 
 class IssueOut(Schema):
@@ -47,6 +49,8 @@ class ImprovementOut(Schema):
     title: str
     rationale: str
     ops: list[OpOut]
+    resolves: list[str] = []
+    side_effects: list[str] = []
 
 
 class ReviewOut(Schema):
@@ -78,6 +82,7 @@ class SuggestIn(Schema):
 class SuggestionOut(Schema):
     title: str
     ops: list[OpOut]
+    side_effects: list[str] = []
 
 
 class SuggestOut(Schema):

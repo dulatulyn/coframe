@@ -230,3 +230,17 @@
   white-space: nowrap;
   z-index: 29;
 }
+
+.coframe-editor .djs-element.coframe-focus .djs-outline {
+  visibility: visible;
+  stroke: #ffb224;
+  stroke-width: 3px;
+  stroke-dasharray: none;
+}
+
+.coframe-editor .djs-element.coframe-ai-changed .djs-outline {
+  visibility: visible;
+  stroke: #8e4ec6;
+  stroke-width: 3px;
+  stroke-dasharray: 5 4;
+}

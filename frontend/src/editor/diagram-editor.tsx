@@ -23,14 +23,17 @@ import {
   zoomBy,
   zoomToFit,
 } from "./actions";
+import { SUGGEST_EVENT } from "./ai/suggest-pad";
 import { BpmnBinding } from "./collab/binding";
 import { PresenceController, type Peer } from "./collab/presence";
 import { DiagramSession } from "./collab/session";
 import { createEditor, hasService, service, type BpmnEditor } from "./modeler";
+import { AssistantPanel } from "./ui/assistant-panel";
 import { EditorInspector } from "./ui/editor-inspector";
 import { EditorTopBar } from "./ui/editor-top-bar";
 import { SessionEndedOverlay } from "./ui/session-ended";
 import { ShortcutsDialog } from "./ui/shortcuts-dialog";
+import { SuggestPopover } from "./ui/suggest-popover";
 import { VersionHistoryDialog } from "./ui/version-history";
 
 type Element = any;
@@ -59,7 +62,9 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [tool, setTool] = useState<ToolId>("select");
   const [zoom, setZoom] = useState(1);
   const [selection, setSelection] = useState<Element[]>([]);
-  const [, setUndoVersion] = useState(0);
+  const [changeVersion, setUndoVersion] = useState(0);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [suggestFor, setSuggestFor] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -128,6 +133,9 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         setTool(active === "hand" ? "hand" : active === "lasso" ? "lasso" : active === "space" ? "space" : active === "global-connect" ? "connect" : "select");
       const onViewbox = ({ viewbox }: { viewbox: { scale: number } }) => setZoom(viewbox.scale);
       const onSelection = ({ newSelection }: { newSelection: Element[] }) => setSelection([...newSelection]);
+      const onSuggest = ({ element }: { element: { id: string } }) => setSuggestFor(element.id);
+      eventBus.on(SUGGEST_EVENT, onSuggest);
+      offs.push(() => eventBus.off(SUGGEST_EVENT, onSuggest));
       eventBus.on("tool-manager.update", onTool);
       eventBus.on("canvas.viewbox.changed", onViewbox);
       eventBus.on("selection.changed", onSelection);
@@ -224,6 +232,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         onHistory={() => setHistoryOpen(true)}
         onMinimap={editor && hasService(editor, "minimap") ? () => setMinimapOpen(toggleMinimap(editor)) : undefined}
         onShortcuts={() => setShortcutsOpen(true)}
+        assistantOpen={assistantOpen}
+        onAssistant={editor ? () => setAssistantOpen((open) => !open) : undefined}
       />
 
       <div
@@ -274,7 +284,21 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       </div>
 
-      {editor && inspectable && inspector.open && (
+      {editor && assistantOpen && (
+        <AssistantPanel
+          editor={editor}
+          diagramId={diagram.id}
+          me={me}
+          readOnly={readOnly}
+          version={changeVersion}
+          onClose={() => setAssistantOpen(false)}
+          className={cn(
+            "absolute z-30 rounded-[24px] border border-hairline bg-paper shadow-float",
+            inspector.medium ? "bottom-24 right-4 top-20 w-[360px]" : "inset-x-3 bottom-3 h-[65dvh]",
+          )}
+        />
+      )}
+      {editor && inspectable && inspector.open && !assistantOpen && (
         <EditorInspector
           key={selected.id}
           editor={editor}
@@ -287,7 +311,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && inspectable && !inspector.open && (
+      {editor && inspectable && !inspector.open && !assistantOpen && (
         <button
           type="button"
           onClick={() => inspector.setOpen(true)}
@@ -321,6 +345,16 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       )}
 
+      {editor && suggestFor && !readOnly && (
+        <SuggestPopover
+          key={suggestFor}
+          editor={editor}
+          diagramId={diagram.id}
+          elementId={suggestFor}
+          me={me}
+          onClose={() => setSuggestFor(null)}
+        />
+      )}
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <VersionHistoryDialog
         diagramId={diagram.id}

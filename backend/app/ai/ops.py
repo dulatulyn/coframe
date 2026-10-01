@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.ai.graph import ACTIVITIES, EVENTS, GATEWAYS, Graph
 
-OpKind = Literal["add", "connect", "rename", "retype", "remove", "set_default", "label_flow"]
+OpKind = Literal["add", "insert", "connect", "rename", "retype", "remove", "set_default", "label_flow"]
 
 TASK_TYPES = {
     "bpmn:Task",
@@ -72,7 +72,9 @@ class Op(BaseModel):
     element: str | None = Field(
         default=None, description="rename/retype/remove/set_default: id of the element to change."
     )
-    flow: str | None = Field(default=None, description="set_default/label_flow: id of the sequence flow.")
+    flow: str | None = Field(
+        default=None, description="insert/set_default/label_flow: id of the sequence flow."
+    )
 
 
 def _family(type_name: str) -> str:
@@ -127,6 +129,20 @@ def validate_ops(ops: list[Op], graph: Graph) -> list[Op]:
                     raise InvalidOps(f"{where}: boundary events attach to activities only")
             if op.after:
                 node_or_ref(op.after, f"{where}: after")
+            created[op.ref] = op.type
+        elif op.op == "insert":
+            if not op.ref or op.ref in nodes or op.ref in flows or op.ref in created:
+                raise InvalidOps(f"{where}: needs a new unique ref")
+            if op.type not in TASK_TYPES | GATEWAY_TYPES | {
+                "bpmn:IntermediateCatchEvent",
+                "bpmn:IntermediateThrowEvent",
+            }:
+                raise InvalidOps(f"{where}: {op.type} cannot be inserted into a flow")
+            if op.event and op.event not in EVENT_DEFINITIONS:
+                raise InvalidOps(f"{where}: unknown event {op.event}")
+            flow = flows.get(op.flow or "")
+            if not flow or flow.kind != "sequence":
+                raise InvalidOps(f"{where}: flow {op.flow} is not a sequence flow")
             created[op.ref] = op.type
         elif op.op == "connect":
             source = node_or_ref(op.source, f"{where}: source")

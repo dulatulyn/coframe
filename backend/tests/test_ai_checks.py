@@ -208,3 +208,59 @@ async def test_check_endpoint_reports_findings_for_a_live_diagram(make_user):
 
     stranger = await make_user()
     assert (await stranger.client.get(f"/api/diagrams/{diagram_id}/check")).status_code in (403, 404)
+
+
+DEADLOCK = (
+    '<bpmn:startEvent id="S" name="Start"/>'
+    '<bpmn:exclusiveGateway id="X" name="Approved?"/>'
+    '<bpmn:task id="A" name="Ship"/><bpmn:task id="B" name="Refund"/>'
+    '<bpmn:parallelGateway id="J"/><bpmn:endEvent id="E" name="Done"/>'
+    + flow("f1", "S", "X")
+    + flow("f2", "X", "A", "yes")
+    + flow("f3", "X", "B", "no")
+    + flow("f4", "A", "J")
+    + flow("f5", "B", "J")
+    + flow("f6", "J", "E")
+)
+
+
+def test_simulated_fix_resolves_the_deadlock():
+    from app.ai.ops import Op
+    from app.ai.simulate import evaluate
+
+    graph = build_graph(bpmn(DEADLOCK))
+    before = run_checks(graph)
+    outcome = evaluate(graph, before, [Op(op="retype", element="J", type="bpmn:ExclusiveGateway")])
+    assert "deadlock" in {f.rule for f in outcome.resolves}
+    assert not outcome.breaks_model
+
+
+def test_branching_addition_reports_its_side_effects():
+    from app.ai.ops import Op
+    from app.ai.simulate import evaluate
+
+    graph = build_graph(bpmn(LINEAR))
+    outcome = evaluate(
+        graph, run_checks(graph), [Op(op="add", ref="new1", type="bpmn:Task", name="Notify", after="A")]
+    )
+    assert {f.rule for f in outcome.introduces} == {"no-implicit-split", "no-implicit-end"}
+    assert not outcome.breaks_model
+
+
+def test_inserting_a_step_keeps_the_model_clean():
+    from app.ai.ops import Op, validate_ops
+    from app.ai.simulate import evaluate
+
+    graph = build_graph(bpmn(LINEAR))
+    ops = validate_ops([Op(op="insert", ref="new1", type="bpmn:UserTask", name="Approve", flow="f2")], graph)
+    outcome = evaluate(graph, run_checks(graph), ops)
+    assert outcome.introduces == [] and outcome.resolves == []
+
+
+def test_changes_that_break_the_model_are_detected():
+    from app.ai.ops import Op
+    from app.ai.simulate import evaluate
+
+    graph = build_graph(bpmn(LINEAR))
+    outcome = evaluate(graph, run_checks(graph), [Op(op="remove", element="E")])
+    assert outcome.breaks_model

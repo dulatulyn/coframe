@@ -31,13 +31,17 @@ you were given. New elements get a temporary ref (new1, new2, ...) that later op
   bpmn:IntermediateCatchEvent, bpmn:BoundaryEvent, bpmn:TextAnnotation), optional event (message, timer, error,
   escalation, signal, conditional, compensate, link, terminate), name, after (an element id or ref: the new element
   is placed right after it and connected from it), attach_to (activity id, only for bpmn:BoundaryEvent).
+- insert: put a new task, intermediate event or gateway into an existing sequence flow, between its source and
+  target (ref, type, optional event, name, flow). Use this to add a step in the middle of a process.
 - connect: add a flow from source to target (ids or refs). The editor picks sequence or message flow.
 - rename: set the label of an element, flow, pool or lane (element, name).
 - retype: change an element into another type of the same family (element, type, optional event).
 - remove: delete an element or flow (element).
 - set_default: make an outgoing sequence flow the default of a decision (element = gateway, flow).
 - label_flow: label a sequence or message flow (flow, name).
-Keep changes minimal and complete: a fix must leave a valid model (connected, labeled, with ends).
+Keep changes minimal and complete: a fix must leave a valid model (connected, labeled, with ends). "add" with
+after creates a new branch from that element; to add a step between two connected elements use insert instead.
+Every proposal is re-checked by code; proposals that break the model are discarded.
 """.strip()
 
 REVIEW = f"""{BPMN_GUIDE}

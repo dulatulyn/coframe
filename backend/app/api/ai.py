@@ -13,6 +13,7 @@ from app.ai.graph import Graph, build_graph
 from app.ai.llm import AiFailed, AiUnavailable, Usage, provider
 from app.ai.ops import InvalidOps, Op, validate_ops
 from app.ai.results import AiReview, AiSuggestions
+from app.ai.simulate import Outcome, evaluate
 from app.bpmn.xmlsafe import InvalidXml
 from app.db import SessionLocal
 from app.deps import CurrentUser, Db
@@ -70,12 +71,17 @@ def ops_out(ops: list[Op]) -> list[OpOut]:
     return [OpOut(**op.model_dump()) for op in ops]
 
 
-def checked(ops: list[Op], graph: Graph) -> list[Op] | None:
+def checked(ops: list[Op], graph: Graph, findings: list[Finding]) -> tuple[list[Op], Outcome] | None:
     try:
-        return validate_ops(ops, graph)
+        valid = validate_ops(ops, graph)
     except InvalidOps as exc:
         log.info("dropped an AI suggestion: %s", exc)
         return None
+    outcome = evaluate(graph, findings, valid)
+    if outcome.breaks_model:
+        log.info("dropped an AI suggestion that breaks the model: %s", [f.rule for f in outcome.introduces])
+        return None
+    return valid, outcome
 
 
 def findings_out(findings: list[Finding]) -> list[FindingOut]:
@@ -127,20 +133,33 @@ async def ai_review(diagram_id: uuid.UUID, body: ReviewIn, user: CurrentUser, db
     known = set(graph.nodes) | {f.id for f in graph.flows.values()} | set(graph.pools) | set(graph.lanes)
     issues = []
     for issue in review.issues:
-        fix_ops = checked(issue.fix.ops, graph) if issue.fix else None
+        fix = checked(issue.fix.ops, graph, findings) if issue.fix else None
         issues.append(
             IssueOut(
                 title=issue.title,
                 severity=issue.severity,
                 explanation=issue.explanation,
                 elements=[e for e in issue.elements if e in known],
-                fix=FixOut(title=issue.fix.title, ops=ops_out(fix_ops)) if issue.fix and fix_ops else None,
+                fix=FixOut(
+                    title=issue.fix.title,
+                    ops=ops_out(fix[0]),
+                    resolves=[f.message for f in fix[1].resolves],
+                    side_effects=[f.message for f in fix[1].introduces],
+                )
+                if issue.fix and fix
+                else None,
             )
         )
     improvements = [
-        ImprovementOut(title=i.title, rationale=i.rationale, ops=ops_out(valid))
+        ImprovementOut(
+            title=i.title,
+            rationale=i.rationale,
+            ops=ops_out(valid[0]),
+            resolves=[f.message for f in valid[1].resolves],
+            side_effects=[f.message for f in valid[1].introduces],
+        )
         for i in review.improvements
-        if (valid := checked(i.ops, graph))
+        if (valid := checked(i.ops, graph, findings))
     ]
     return ReviewOut(
         summary=review.summary,
@@ -169,9 +188,11 @@ async def ai_suggest(diagram_id: uuid.UUID, body: SuggestIn, user: CurrentUser, 
         raise await _call_failed(db, user, "suggest", exc) from exc
     await budget.record(db, user, "suggest", usage)
     suggestions = [
-        SuggestionOut(title=s.title, ops=ops_out(valid))
+        SuggestionOut(
+            title=s.title, ops=ops_out(valid[0]), side_effects=[f.message for f in valid[1].introduces]
+        )
         for s in result.suggestions[:3]
-        if (valid := checked(s.ops, graph))
+        if (valid := checked(s.ops, graph, findings))
     ]
     return SuggestOut(suggestions=suggestions)
 

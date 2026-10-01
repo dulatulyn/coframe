@@ -6,6 +6,11 @@ import { clearLocalCopies } from "@/editor/collab/local-copy";
 
 import { api, ApiError } from "./client";
 import type {
+  AiReview,
+  AiStatus,
+  AiSuggestion,
+  ChatTurn,
+  CheckResult,
   DiagramVersion,
   Access,
   Diagram,
@@ -499,4 +504,74 @@ export function useSearch(workspaceId: string, q: string) {
     enabled: query.length > 0,
     staleTime: 10_000,
   });
+}
+
+export function useCheck(diagramId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["check", diagramId],
+    queryFn: () => api<CheckResult>(`/diagrams/${diagramId}/check`),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+export function useAiStatus(enabled = true) {
+  return useQuery({ queryKey: ["ai-status"], queryFn: () => api<AiStatus>("/ai/status"), enabled, staleTime: 30_000 });
+}
+
+export function useAiReview(diagramId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (language: string) =>
+      api<AiReview>(`/diagrams/${diagramId}/ai/review`, { method: "POST", body: { language } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
+  });
+}
+
+export function useAiSuggest(diagramId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ elementId, language }: { elementId: string; language: string }) =>
+      api<{ suggestions: AiSuggestion[] }>(`/diagrams/${diagramId}/ai/suggest`, {
+        method: "POST",
+        body: { elementId, language },
+      }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
+  });
+}
+
+export async function streamAiChat(
+  diagramId: string,
+  messages: ChatTurn[],
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`/api/diagrams/${diagramId}/ai/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, (body as { detail?: string } | null)?.detail ?? "ai_failed", body);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const event of events) {
+      const line = event.split("\n").find((l) => l.startsWith("data: "));
+      if (!line) continue;
+      const payload = JSON.parse(line.slice(6)) as { delta?: string; error?: string };
+      if (payload.error) throw new ApiError(502, payload.error, payload);
+      if (payload.delta) onDelta(payload.delta);
+    }
+  }
 }
