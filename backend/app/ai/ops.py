@@ -105,6 +105,17 @@ class AddOp(BaseModel):
     )
 
 
+class AttachOp(BaseModel):
+    op: Literal["attach"]
+    ref: NewRef
+    host: Id = Field(description="The activity the boundary event sits on.")
+    event: str = Field(description="Trigger: timer, error, message, escalation, signal, conditional, compensate.")
+    name: str
+    interrupting: bool = Field(
+        description="false keeps the activity running (e.g. a reminder); true cancels it (e.g. a deadline)."
+    )
+
+
 class InsertOp(BaseModel):
     op: Literal["insert"]
     ref: NewRef
@@ -150,11 +161,23 @@ class LabelFlowOp(BaseModel):
     name: str
 
 
-AnyOp = AddOp | InsertOp | ConnectOp | RenameOp | RetypeOp | RemoveOp | SetDefaultOp | LabelFlowOp
+AnyOp = AddOp | AttachOp | InsertOp | ConnectOp | RenameOp | RetypeOp | RemoveOp | SetDefaultOp | LabelFlowOp
 
 
 def as_op(value: Op | BaseModel) -> Op:
-    return value if isinstance(value, Op) else Op(**value.model_dump())
+    if isinstance(value, Op):
+        return value
+    if isinstance(value, AttachOp):
+        return Op(
+            op="add",
+            ref=value.ref,
+            type="bpmn:BoundaryEvent",
+            event=value.event,
+            name=value.name,
+            attach_to=value.host,
+            interrupting=value.interrupting,
+        )
+    return Op(**value.model_dump())
 
 
 def _family(type_name: str) -> str:

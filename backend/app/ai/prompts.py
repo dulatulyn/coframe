@@ -28,11 +28,11 @@ OPS_GUIDE = """
 Changes are expressed as operations that the editor applies in order. Refer to existing elements only by the ids
 you were given. New elements get a temporary ref (new1, new2, ...) that later operations can use.
 - add: create an element. Fields: ref, type (e.g. bpmn:UserTask, bpmn:ExclusiveGateway, bpmn:EndEvent,
-  bpmn:IntermediateCatchEvent, bpmn:BoundaryEvent, bpmn:TextAnnotation), optional event (message, timer, error,
-  escalation, signal, conditional, compensate, link, terminate), name, after (an element id or ref: the new element
-  is placed right after it and connected from it), attach_to (activity id, only for bpmn:BoundaryEvent),
-  interrupting (bpmn:BoundaryEvent only: false for a non-interrupting event, e.g. a reminder timer that leaves the
-  activity running; its path should end in its own end event).
+  bpmn:IntermediateCatchEvent, bpmn:TextAnnotation), optional event (message, timer, error, escalation, signal,
+  conditional, compensate, link, terminate), name, after (an element id or ref: the new element is placed right after
+  it and connected from it). Boundary events are created with attach, not add.
+- attach: put a boundary event on an activity (ref, host = the activity id, event, name, interrupting). Use it for
+  deadlines, reminders and errors; continue its path with add (after = its ref) and finish it with an end event.
 - insert: put a new task, intermediate event or gateway into an existing sequence flow, between its source and
   target (ref, type, optional event, name, flow). Use this to add a step in the middle of a process.
 - connect: add a flow from source to target (ids or refs). The editor picks sequence or message flow. A pool id

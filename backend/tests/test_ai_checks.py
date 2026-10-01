@@ -306,3 +306,34 @@ def test_non_interrupting_reminder_keeps_the_model_clean():
     )
     outcome = evaluate(graph, run_checks(graph), ops)
     assert not outcome.breaks_model and outcome.introduces == []
+
+
+def test_attach_creates_a_boundary_event_on_its_host():
+    from app.ai.ops import AttachOp, validate_ops
+    from app.ai.results import AiCommand
+
+    graph = build_graph((FIXTURES / "order-to-cash.bpmn").read_text())
+    parsed = AiCommand.model_validate(
+        {
+            "reply": "ok",
+            "ops": [
+                {
+                    "op": "attach",
+                    "ref": "t",
+                    "host": "Task_payment",
+                    "event": "timer",
+                    "name": "7 days",
+                    "interrupting": False,
+                },
+                {"op": "add", "ref": "e", "type": "bpmn:EndEvent", "name": "Reminded", "after": "t"},
+            ],
+        }
+    )
+    assert isinstance(parsed.ops[0], AttachOp)
+    ops = validate_ops(parsed.ops, graph)
+    assert (ops[0].op, ops[0].type, ops[0].attach_to, ops[0].interrupting) == (
+        "add",
+        "bpmn:BoundaryEvent",
+        "Task_payment",
+        False,
+    )
