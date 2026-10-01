@@ -84,6 +84,7 @@ class DiagramRoom:
         self._unversioned = False
         self._last_version_at: datetime | None = None
         self._last_xml: str | None = None
+        self._persisted: bytes | None = None
         self._changes: list[bytes] = []
         self._save_task: asyncio.Task[None] | None = None
         self._save_lock = asyncio.Lock()
@@ -109,6 +110,8 @@ class DiagramRoom:
             self.unload_task = None
         self.connections.add(conn)
         await conn.send(sync_message(SYNC_STEP1, self.doc.get_state()))
+        if self._persisted is not None:
+            await conn.send(persisted_message(self._persisted))
         if self.awareness:
             await conn.send(awareness_message(encode_update(list(self.awareness.values()))))
 
@@ -231,6 +234,7 @@ class DiagramRoom:
                 log.exception("saving diagram %s failed; will retry", self.diagram_id)
                 self.mark_dirty(None)
                 return
+            self._persisted = state_vector
         await self.broadcast(persisted_message(state_vector))
         due = self._last_version_at is None or (now - self._last_version_at).total_seconds() >= (
             settings.version_interval
@@ -326,6 +330,8 @@ class RoomManager:
         room = DiagramRoom(self, diagram_id, row.project_id, doc)
         room._last_version_at = last_version_at
         room._last_xml = row.xml
+        if not needs_save:
+            room._persisted = doc.get_state()
         if needs_save:
             room.mark_dirty(None)
         return room

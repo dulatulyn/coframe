@@ -222,3 +222,15 @@ async def test_changes_arriving_while_saving_are_saved_too(make_user: MakeUser, 
 
     xml = await db.scalar(select(Diagram.xml).where(Diagram.id == diagram_id))
     assert 'name="Early"' in xml and 'name="Late"' in xml
+
+
+async def test_joining_clients_learn_what_is_already_saved(make_user: MakeUser):
+    owner, _, diagram_id = await setup_diagram(make_user)
+    async with connected(owner) as client, ydiagram(client, diagram_id) as first:
+        await asyncio.wait_for(first.synced.wait(), 3)
+        await eventually(lambda: len(first.persisted) > 0)
+
+    await rooms.shutdown()
+    async with connected(owner) as client, ydiagram(client, diagram_id) as later:
+        await asyncio.wait_for(later.synced.wait(), 3)
+        await eventually(lambda: len(later.persisted) > 0, timeout=1.0)

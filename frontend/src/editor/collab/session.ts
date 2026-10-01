@@ -31,6 +31,7 @@ export class DiagramSession {
   private persisted = new Map<number, number>();
   private persistedAt = 0;
   private localChangeAt = 0;
+  private localClients = new Set<number>();
   private listeners = new Set<Listener>();
 
   constructor(
@@ -43,6 +44,7 @@ export class DiagramSession {
         this.local = new IndexeddbPersistence(localCopyName(diagramId, generation), this.doc);
         this.local.on("synced", () => {
           this.localLoaded = true;
+          for (const client of this.doc.store.clients.keys()) this.localClients.add(client);
           this.emit();
         });
         void dropOtherGenerations(diagramId, generation);
@@ -71,7 +73,7 @@ export class DiagramSession {
       this.emit();
     });
     this.doc.on("update", (_update: Uint8Array, origin: unknown) => {
-      if (origin !== this.provider) this.localChangeAt = performance.now();
+      if (origin !== this.provider && origin !== this.local) this.localChangeAt = performance.now();
       this.emit();
     });
   }
@@ -82,8 +84,10 @@ export class DiagramSession {
 
   get saveState(): SaveState {
     if (this.connection !== "online") return this.local && this.localLoaded ? "local" : "offline";
-    const own = Y.getState(this.doc.store, this.doc.clientID);
-    const insertsSaved = (this.persisted.get(this.doc.clientID) ?? 0) >= own;
+    const clients = new Set([...this.localClients, this.doc.clientID]);
+    const insertsSaved = [...clients].every(
+      (client) => (this.persisted.get(client) ?? 0) >= Y.getState(this.doc.store, client),
+    );
     return insertsSaved && this.persistedAt >= this.localChangeAt ? "saved" : "saving";
   }
 
