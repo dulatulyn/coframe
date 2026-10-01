@@ -29,8 +29,9 @@ async def review(path: Path, xml: str, language: str) -> dict:
     for ops in proposals:
         try:
             validate_ops(ops, graph)
-        except InvalidOps:
+        except InvalidOps as exc:
             rejected += 1
+            print(f"  rejected: {exc} :: {[o.model_dump(exclude_none=True) for o in ops]}")
             continue
         if evaluate(graph, findings, ops).breaks_model:
             broken += 1

@@ -23,11 +23,14 @@ import {
   zoomBy,
   zoomToFit,
 } from "./actions";
+import { AI_APPLIED_EVENT, type AiChange } from "./ai/apply";
 import { SUGGEST_EVENT } from "./ai/suggest-pad";
 import { BpmnBinding } from "./collab/binding";
 import { PresenceController, type Peer } from "./collab/presence";
 import { DiagramSession } from "./collab/session";
 import { createEditor, hasService, service, type BpmnEditor } from "./modeler";
+import { AiChangeBar } from "./ui/ai-change-bar";
+import { AiCommand } from "./ui/ai-command";
 import { AssistantPanel } from "./ui/assistant-panel";
 import { EditorInspector } from "./ui/editor-inspector";
 import { EditorTopBar } from "./ui/editor-top-bar";
@@ -65,6 +68,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [changeVersion, setUndoVersion] = useState(0);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [suggestFor, setSuggestFor] = useState<string | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [aiChange, setAiChange] = useState<AiChange | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -133,9 +138,17 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         setTool(active === "hand" ? "hand" : active === "lasso" ? "lasso" : active === "space" ? "space" : active === "global-connect" ? "connect" : "select");
       const onViewbox = ({ viewbox }: { viewbox: { scale: number } }) => setZoom(viewbox.scale);
       const onSelection = ({ newSelection }: { newSelection: Element[] }) => setSelection([...newSelection]);
-      const onSuggest = ({ element }: { element: { id: string } }) => setSuggestFor(element.id);
+      const onSuggest = ({ element }: { element: { id: string } }) => {
+        setCommandOpen(false);
+        setSuggestFor(element.id);
+      };
+      const onAiApplied = (change: AiChange) => setAiChange(change.added.length || change.changed.length ? change : null);
       eventBus.on(SUGGEST_EVENT, onSuggest);
-      offs.push(() => eventBus.off(SUGGEST_EVENT, onSuggest));
+      eventBus.on(AI_APPLIED_EVENT, onAiApplied);
+      offs.push(() => {
+        eventBus.off(SUGGEST_EVENT, onSuggest);
+        eventBus.off(AI_APPLIED_EVENT, onAiApplied);
+      });
       eventBus.on("tool-manager.update", onTool);
       eventBus.on("canvas.viewbox.changed", onViewbox);
       eventBus.on("selection.changed", onSelection);
@@ -166,11 +179,19 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
       setBinding(null);
       setPresence(null);
       setSelection([]);
+      setAiChange(null);
+      setCommandOpen(false);
     };
   }, [diagram.id, readOnly]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setSuggestFor(null);
+        setCommandOpen((open) => !open);
+        return;
+      }
       const target = e.target as HTMLElement;
       if (target.closest("input, textarea, [contenteditable=true]")) return;
       if (e.key === "?") setShortcutsOpen(true);
@@ -178,6 +199,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const clearAiChange = useCallback(() => setAiChange(null), []);
 
   const onCreate = (item: CatalogItem, event: MouseEvent | DragEvent) => editor && startCreate(editor, item, event);
   const onTool = (id: ToolId, event: MouseEvent) => editor && activateTool(editor, id, event);
@@ -291,6 +314,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           me={me}
           readOnly={readOnly}
           version={changeVersion}
+          selection={selection}
           onClose={() => setAssistantOpen(false)}
           className={cn(
             "absolute z-30 rounded-[24px] border border-hairline bg-paper shadow-float",
@@ -345,6 +369,27 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       )}
 
+      {editor && !failed && !session?.ended && !suggestFor && (
+        <AiCommand
+          editor={editor}
+          diagramId={diagram.id}
+          me={me}
+          selection={selection}
+          open={commandOpen}
+          readOnly={readOnly}
+          onOpenChange={setCommandOpen}
+        />
+      )}
+      {editor && binding && aiChange && (
+        <AiChangeBar
+          key={aiChange.tag}
+          editor={editor}
+          binding={binding}
+          change={aiChange}
+          version={changeVersion}
+          onDone={clearAiChange}
+        />
+      )}
       {editor && suggestFor && !readOnly && (
         <SuggestPopover
           key={suggestFor}

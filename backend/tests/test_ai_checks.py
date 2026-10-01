@@ -264,3 +264,45 @@ def test_changes_that_break_the_model_are_detected():
     graph = build_graph(bpmn(LINEAR))
     outcome = evaluate(graph, run_checks(graph), [Op(op="remove", element="E")])
     assert outcome.breaks_model
+
+
+def test_message_flows_can_target_a_pool_but_not_their_own():
+    from app.ai.ops import InvalidOps, Op, validate_ops
+    from app.ai.simulate import evaluate
+
+    graph = build_graph((FIXTURES / "order-to-cash.bpmn").read_text())
+    ops = validate_ops([Op(op="connect", source="Task_invoice", target="Participant_customer")], graph)
+    outcome = evaluate(graph, run_checks(graph), ops)
+    assert not outcome.breaks_model and outcome.introduces == []
+    own = next(p for p in graph.pools if p != "Participant_customer")
+    try:
+        validate_ops([Op(op="connect", source="Task_invoice", target=own)], graph)
+    except InvalidOps:
+        pass
+    else:
+        raise AssertionError("a message flow into its own pool must be rejected")
+
+
+def test_non_interrupting_reminder_keeps_the_model_clean():
+    from app.ai.ops import Op, validate_ops
+    from app.ai.simulate import evaluate
+
+    graph = build_graph((FIXTURES / "order-to-cash.bpmn").read_text())
+    ops = validate_ops(
+        [
+            Op(
+                op="add",
+                ref="t",
+                type="bpmn:BoundaryEvent",
+                event="timer",
+                attach_to="Task_payment",
+                interrupting=False,
+                name="7 days",
+            ),
+            Op(op="add", ref="s", type="bpmn:SendTask", name="Send reminder", after="t"),
+            Op(op="add", ref="e", type="bpmn:EndEvent", name="Reminder sent", after="s"),
+        ],
+        graph,
+    )
+    outcome = evaluate(graph, run_checks(graph), ops)
+    assert not outcome.breaks_model and outcome.introduces == []

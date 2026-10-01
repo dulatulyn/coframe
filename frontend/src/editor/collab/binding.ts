@@ -7,6 +7,7 @@ import { applyDiff, readElements } from "./ydoc";
 
 export const LOCAL = "coframe:local";
 export const SANITIZE = "coframe:sanitize";
+export const AI_APPLYING_EVENT = "coframe.ai.applying";
 
 type Viewbox = { x: number; y: number; width: number; height: number };
 type ViewState = { viewbox: Viewbox; rootId: string | null; selection: string[] };
@@ -42,6 +43,8 @@ export class BpmnBinding {
   private disposed = false;
   private rendered = false;
   private cleanups: (() => void)[] = [];
+  private aiTag: string | null = null;
+  private tagging: string | null = null;
 
   constructor(
     private readonly editor: BpmnEditor,
@@ -77,6 +80,16 @@ export class BpmnBinding {
     this.undoManager?.redo();
   }
 
+  isLastChange(tag: string): boolean {
+    return this.undoManager?.undoStack.at(-1)?.meta.get("ai") === tag;
+  }
+
+  undoChange(tag: string): boolean {
+    if (!this.isLastChange(tag)) return false;
+    this.undo();
+    return true;
+  }
+
   dispose(): void {
     this.disposed = true;
     if (this.frame) cancelAnimationFrame(this.frame);
@@ -93,13 +106,19 @@ export class BpmnBinding {
     };
     eventBus.on("commandStack.changed", onCommand);
     this.cleanups.push(() => eventBus.off("commandStack.changed", onCommand));
+    const onAiApplying = ({ tag }: { tag: string }) => {
+      this.aiTag = tag;
+    };
+    eventBus.on(AI_APPLYING_EVENT, onAiApplying);
+    this.cleanups.push(() => eventBus.off(AI_APPLYING_EVENT, onAiApplying));
 
     const undoManager = new Y.UndoManager(this.session.elements, {
       trackedOrigins: new Set([LOCAL]),
       captureTimeout: 0,
     });
-    undoManager.on("stack-item-added", ({ stackItem }: { stackItem: { meta: Map<string, unknown> } }) => {
+    undoManager.on("stack-item-added", ({ stackItem, type }: { stackItem: { meta: Map<string, unknown> }; type: string }) => {
       stackItem.meta.set("selection", this.currentSelection());
+      if (type === "undo" && this.tagging) stackItem.meta.set("ai", this.tagging);
     });
     undoManager.on("stack-item-popped", ({ stackItem }: { stackItem: { meta: Map<string, unknown> } }) => {
       this.pendingSelection = (stackItem.meta.get("selection") as string[] | undefined) ?? null;
@@ -124,12 +143,19 @@ export class BpmnBinding {
     try {
       do {
         this.syncAgain = false;
+        const tag = this.aiTag;
         const { xml } = await this.editor.saveXML({ format: false });
         if (!xml || this.disposed) return;
         const next = alignOrder(flattenXml(xml), this.shadow);
         const diff = diffDocs(this.shadow, next);
+        if (tag && this.aiTag === tag) this.aiTag = null;
         if (!isEmptyDiff(diff)) {
-          this.session.doc.transact(() => applyDiff(this.session.elements, diff), LOCAL);
+          this.tagging = tag;
+          try {
+            this.session.doc.transact(() => applyDiff(this.session.elements, diff), LOCAL);
+          } finally {
+            this.tagging = null;
+          }
           this.options.onLocalChange?.();
         }
         this.shadow = next;

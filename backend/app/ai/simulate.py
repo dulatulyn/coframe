@@ -35,7 +35,8 @@ def apply(graph: Graph, ops: list[Op]) -> Graph:
         nonlocal counter
         counter += 1
         a, b = result.nodes.get(source), result.nodes.get(target)
-        kind = "message" if a and b and a.pool != b.pool else "sequence"
+        to_pool = source in result.pools or target in result.pools
+        kind = "message" if to_pool or (a and b and a.pool != b.pool) else "sequence"
         result.flows[f"__sim_{counter}"] = Flow(f"__sim_{counter}", kind, source, target)
 
     def add_node(op: Op, anchor: Node | None) -> Node:
@@ -50,7 +51,7 @@ def apply(graph: Graph, ops: list[Op]) -> Graph:
         )
         if node.kind == "boundaryEvent":
             node.attached_to = op.attach_to
-            node.interrupting = True
+            node.interrupting = op.interrupting is not False
         result.nodes[node.id] = node
         if node.lane and node.lane in result.lanes:
             result.lanes[node.lane].members.append(node.id)

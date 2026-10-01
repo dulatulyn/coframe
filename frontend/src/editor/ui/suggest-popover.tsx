@@ -3,7 +3,6 @@
 import { Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/api/client";
@@ -11,7 +10,7 @@ import { useAiSuggest } from "@/lib/api/hooks";
 import type { User } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-import { applyOps, focusElements } from "../ai/apply";
+import { applyOps } from "../ai/apply";
 import { service, type BpmnEditor } from "../modeler";
 import { userLanguage } from "./assistant-panel";
 
@@ -49,9 +48,7 @@ export function SuggestPopover({
   const accept = (index: number) => {
     const option = options[index];
     if (!option) return;
-    const { changed, skipped } = applyOps(editor, option.ops);
-    if (changed.length) focusElements(editor, changed);
-    toast.success(skipped ? "Added, with some steps skipped" : "Added. Undo with Ctrl+Z.");
+    applyOps(editor, option.ops, option.title);
     onClose();
   };
 

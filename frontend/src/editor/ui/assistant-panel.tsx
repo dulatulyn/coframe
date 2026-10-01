@@ -7,14 +7,15 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ApiError, errorMessage } from "@/lib/api/client";
-import { streamAiChat, useAiReview, useAiStatus, useCheck } from "@/lib/api/hooks";
+import { useAiCommand, useAiReview, useAiStatus, useCheck } from "@/lib/api/hooks";
 import type { AiOp, AiReview, ChatTurn, Finding, Severity, User } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-import { applyOps, focusElements } from "../ai/apply";
+import { applyOps, focusElements, selectableElements } from "../ai/apply";
 import { service, type BpmnEditor } from "../modeler";
 
 type Tab = "check" | "review" | "ask";
+type Element = any;
 
 const SEVERITY: Record<Severity, { icon: typeof Info; tone: string; label: string }> = {
   error: { icon: CircleAlert, tone: "text-destructive", label: "Error" },
@@ -161,11 +162,13 @@ function ApplyButton({
   editor,
   ops,
   label,
+  title,
   readOnly,
 }: {
   editor: BpmnEditor;
   ops: AiOp[];
   label: string;
+  title?: string;
   readOnly: boolean;
 }) {
   const [done, setDone] = useState(false);
@@ -177,11 +180,9 @@ function ApplyButton({
       disabled={done}
       className="mt-2.5 h-8"
       onClick={() => {
-        const { changed, skipped } = applyOps(editor, ops);
+        const { skipped } = applyOps(editor, ops, label === "Apply" && title ? title : label);
         setDone(true);
-        if (changed.length) focusElements(editor, changed);
-        if (skipped) toast(`Applied with ${skipped} step${skipped > 1 ? "s" : ""} skipped — the diagram changed since the review.`);
-        else toast.success("Applied. Undo with Ctrl+Z.");
+        if (skipped) toast(`${skipped} step${skipped > 1 ? "s" : ""} skipped — the diagram changed since the review.`);
       }}
     >
       {done ? <Check /> : <Wand2 />} {done ? "Applied" : label}
@@ -269,7 +270,7 @@ function ReviewTab({ editor, diagramId, readOnly }: { editor: BpmnEditor; diagra
                       <h4 className="text-[14px] font-semibold leading-5">{item.title}</h4>
                       <p className="mt-1.5 text-[13px] leading-5 text-slate">{item.rationale}</p>
                       <Effects resolves={item.resolves} sideEffects={item.sideEffects} />
-                      <ApplyButton editor={editor} ops={item.ops} label="Apply" readOnly={readOnly} />
+                      <ApplyButton editor={editor} ops={item.ops} label="Apply" title={item.title} readOnly={readOnly} />
                     </article>
                   ))}
                 </div>
@@ -290,23 +291,37 @@ function ReviewTab({ editor, diagramId, readOnly }: { editor: BpmnEditor; diagra
   );
 }
 
-function MessageText({ editor, text }: { editor: BpmnEditor; text: string }) {
+function Inline({ editor, text }: { editor: BpmnEditor; text: string }) {
   const registry = service(editor, "elementRegistry");
-  const parts = text.split(/(\[[A-Za-z0-9_.:-]+\])/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[A-Za-z0-9_.:-]+\])/g);
   return (
     <>
       {parts.map((part, i) => {
-        const match = /^\[([A-Za-z0-9_.:-]+)\]$/.exec(part);
-        if (match && registry.get(match[1])) {
+        const element = /^\[([A-Za-z0-9_.:-]+)\]$/.exec(part);
+        if (element && registry.get(element[1])) {
           return (
             <button
               key={i}
               type="button"
-              onClick={() => focusElements(editor, [match[1]])}
+              onClick={() => focusElements(editor, [element[1]])}
               className="mx-0.5 rounded-md bg-cobalt/10 px-1 text-[12px] font-medium text-cobalt hover:bg-cobalt/15"
             >
               ↗
             </button>
+          );
+        }
+        if (/^\*\*[^*]+\*\*$/.test(part)) {
+          return (
+            <strong key={i}>
+              <Inline editor={editor} text={part.slice(2, -2)} />
+            </strong>
+          );
+        }
+        if (/^`[^`]+`$/.test(part)) {
+          return (
+            <code key={i} className="rounded bg-fog px-1 text-[13px]">
+              {part.slice(1, -1)}
+            </code>
           );
         }
         return <span key={i}>{part}</span>;
@@ -315,51 +330,103 @@ function MessageText({ editor, text }: { editor: BpmnEditor; text: string }) {
   );
 }
 
-const STARTERS = ["Summarize this process", "What happens if something goes wrong?", "Who is responsible for each step?"];
+export function MessageText({ editor, text }: { editor: BpmnEditor; text: string }) {
+  const lines = text.replace(/`(\[[A-Za-z0-9_.:-]+\])`/g, "$1").split("\n");
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => {
+        if (!line.trim()) return null;
+        const heading = /^#{1,6}\s+(.*)$/.exec(line.trim());
+        if (heading) {
+          return (
+            <p key={i} className="pt-1 font-semibold">
+              <Inline editor={editor} text={heading[1]} />
+            </p>
+          );
+        }
+        const item = /^(\s*)([-*•]|\d+[.)])\s+(.*)$/.exec(line);
+        if (item) {
+          const depth = Math.min(Math.floor(item[1].replace(/\t/g, "  ").length / 2), 3);
+          const marker = /\d/.test(item[2]) ? item[2] : "•";
+          return (
+            <div key={i} className="flex gap-2" style={{ paddingLeft: depth * 16 }}>
+              <span className="shrink-0 text-slate">{marker}</span>
+              <span className="min-w-0">
+                <Inline editor={editor} text={item[3]} />
+              </span>
+            </div>
+          );
+        }
+        return (
+          <p key={i}>
+            <Inline editor={editor} text={line.trim()} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
-function AskTab({ editor, diagramId }: { editor: BpmnEditor; diagramId: string }) {
-  const [messages, setMessages] = useState<ChatTurn[]>([]);
+const STARTERS = [
+  "Summarize this process",
+  "What happens if something goes wrong?",
+  "Add a step to notify the customer at the end",
+];
+
+type ChatEntry = ChatTurn & { applied?: string; rejected?: boolean };
+
+function AskTab({
+  editor,
+  diagramId,
+  selection,
+  readOnly,
+}: {
+  editor: BpmnEditor;
+  diagramId: string;
+  selection: Element[];
+  readOnly: boolean;
+}) {
+  const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
+  const command = useAiCommand(diagramId);
   const scroller = useRef<HTMLDivElement>(null);
-  const abort = useRef<AbortController | null>(null);
+  const selected = selectableElements(editor, selection);
 
-  useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
-  }, [messages]);
+  }, [messages, command.isPending]);
 
-  const send = async (text: string) => {
+  const send = (text: string) => {
     const question = text.trim();
-    if (!question || busy) return;
-    const history: ChatTurn[] = [...messages, { role: "user", text: question }];
-    setMessages([...history, { role: "assistant", text: "" }]);
+    if (!question || command.isPending) return;
+    const history: ChatEntry[] = [...messages, { role: "user", text: question }];
+    setMessages(history);
     setDraft("");
-    setBusy(true);
-    abort.current = new AbortController();
-    try {
-      await streamAiChat(
-        diagramId,
-        history,
-        (delta) =>
-          setMessages((current) => {
-            const next = [...current];
-            next[next.length - 1] = { role: "assistant", text: next[next.length - 1].text + delta };
-            return next;
-          }),
-        abort.current.signal,
-      );
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        setMessages((current) => {
-          const next = [...current];
-          next[next.length - 1] = { role: "assistant", text: errorMessage(error instanceof ApiError ? error : null) };
-          return next;
-        });
-      }
-    } finally {
-      setBusy(false);
-    }
+    command.mutate(
+      {
+        messages: history.map(({ role, text: body }) => ({ role, text: body })),
+        selection: selected.map((e) => e.id),
+        language: userLanguage(),
+      },
+      {
+        onSuccess: (result) => {
+          let applied: string | undefined;
+          if (result.ops.length && !readOnly) {
+            applied = result.title ?? "AI change";
+            applyOps(editor, result.ops, applied);
+          }
+          setMessages((current) => [
+            ...current,
+            { role: "assistant", text: result.reply, applied, rejected: result.rejected },
+          ]);
+        },
+        onError: (error) =>
+          setMessages((current) => [
+            ...current,
+            { role: "assistant", text: errorMessage(error instanceof ApiError ? error : null) },
+          ]),
+      },
+    );
   };
 
   return (
@@ -367,12 +434,15 @@ function AskTab({ editor, diagramId }: { editor: BpmnEditor; diagramId: string }
       <div ref={scroller} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-3">
         {messages.length === 0 && (
           <div className="space-y-2">
-            <p className="text-[13px] leading-5 text-slate">Ask anything about this diagram. Answers follow the actual model.</p>
+            <p className="text-[13px] leading-5 text-slate">
+              Ask about the diagram or tell the assistant what to change. Changes are checked before they land and can be
+              undone in one step.
+            </p>
             {STARTERS.map((s) => (
               <button
                 key={s}
                 type="button"
-                onClick={() => void send(s)}
+                onClick={() => send(s)}
                 className="block w-full rounded-xl bg-fog px-3 py-2 text-left text-[13px] hover:bg-fog-strong"
               >
                 {s}
@@ -384,45 +454,66 @@ function AskTab({ editor, diagramId }: { editor: BpmnEditor; diagramId: string }
           <div
             key={i}
             className={cn(
-              "whitespace-pre-wrap text-[14px] leading-6",
-              m.role === "user" ? "ml-8 rounded-2xl rounded-br-md bg-ink px-3.5 py-2 text-paper" : "",
+              "text-[14px] leading-6",
+              m.role === "user" ? "ml-8 whitespace-pre-wrap rounded-2xl rounded-br-md bg-ink px-3.5 py-2 text-paper" : "",
             )}
           >
             {m.role === "assistant" ? (
-              m.text ? (
+              <>
                 <MessageText editor={editor} text={m.text} />
-              ) : (
-                <Loader2 className="size-4 animate-spin text-slate" />
-              )
+                {m.applied && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-[#1d6b44]">
+                    <Check className="size-3.5" /> Applied: {m.applied}
+                  </p>
+                )}
+                {m.rejected && (
+                  <p className="mt-1.5 text-[12px] leading-4 text-[#8a5a00]">
+                    The change didn&apos;t pass the model checks, so nothing was applied.
+                  </p>
+                )}
+              </>
             ) : (
               m.text
             )}
           </div>
         ))}
+        {command.isPending && (
+          <div className="flex items-center gap-2 text-[13px] text-slate">
+            <Loader2 className="size-4 animate-spin" /> Thinking…
+          </div>
+        )}
       </div>
       <form
-        className="flex items-end gap-2 border-t border-hairline p-3"
+        className="border-t border-hairline p-3"
         onSubmit={(e) => {
           e.preventDefault();
-          void send(draft);
+          send(draft);
         }}
       >
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void send(draft);
-            }
-          }}
-          rows={1}
-          placeholder="Ask about this diagram"
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-fog px-3.5 py-2.5 text-[14px] outline-none placeholder:text-slate focus:ring-3 focus:ring-cobalt/25"
-        />
-        <Button type="submit" size="icon" disabled={busy || !draft.trim()} aria-label="Send">
-          {busy ? <Loader2 className="animate-spin" /> : <ArrowUp />}
-        </Button>
+        {selected.length > 0 && (
+          <p className="mb-2 truncate text-[12px] text-slate">
+            About {selected.length === 1 ? selected[0].businessObject?.name || selected[0].id : `${selected.length} selected elements`}
+          </p>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send(draft);
+              }
+            }}
+            rows={1}
+            maxLength={2000}
+            placeholder="Ask or tell what to change"
+            className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-fog px-3.5 py-2.5 text-[14px] outline-none placeholder:text-slate focus:ring-3 focus:ring-cobalt/25"
+          />
+          <Button type="submit" size="icon" disabled={command.isPending || !draft.trim()} aria-label="Send">
+            {command.isPending ? <Loader2 className="animate-spin" /> : <ArrowUp />}
+          </Button>
+        </div>
       </form>
     </div>
   );
@@ -434,6 +525,7 @@ export function AssistantPanel({
   me,
   readOnly,
   version,
+  selection,
   onClose,
   className,
 }: {
@@ -442,6 +534,7 @@ export function AssistantPanel({
   me: User;
   readOnly: boolean;
   version: number;
+  selection: Element[];
   onClose: () => void;
   className?: string;
 }) {
@@ -463,7 +556,7 @@ export function AssistantPanel({
           [
             ["check", "Check"],
             ["review", "Review"],
-            ["ask", "Ask"],
+            ["ask", "Chat"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -498,7 +591,7 @@ export function AssistantPanel({
       ) : tab === "review" ? (
         <ReviewTab editor={editor} diagramId={diagramId} readOnly={readOnly} />
       ) : (
-        <AskTab editor={editor} diagramId={diagramId} />
+        <AskTab editor={editor} diagramId={diagramId} selection={selection} readOnly={readOnly} />
       )}
     </aside>
   );

@@ -2,14 +2,19 @@ import { selfAndAllChildren } from "diagram-js/lib/util/Elements";
 
 import type { AiOp } from "@/lib/api/types";
 
+import { AI_APPLYING_EVENT } from "../collab/binding";
 import { hasService, service, type BpmnEditor } from "../modeler";
 
 export const APPLY_COMMAND = "coframe.ai.apply";
+export const AI_APPLIED_EVENT = "coframe.ai.applied";
+const ADDED_MARKER = "coframe-ai-added";
 const CHANGED_MARKER = "coframe-ai-changed";
 const FOCUS_MARKER = "coframe-focus";
 
 type Element = any;
-type Context = { ops: AiOp[]; changed: string[]; skipped: number };
+type Context = { ops: AiOp[]; added: string[]; changed: string[]; skipped: number };
+
+export type AiChange = { tag: string; title: string; added: string[]; changed: string[]; skipped: number };
 
 function eventDefinition(event: string | null | undefined): string | undefined {
   if (!event) return undefined;
@@ -34,6 +39,7 @@ class ApplyOpsHandler {
     const refs: Record<string, Element> = {};
     const resolve = (id: string | null | undefined): Element | null => (id ? refs[id] ?? registry.get(id) ?? null : null);
     const mark = (element: Element | null) => element && context.changed.push(element.id);
+    const markNew = (element: Element | null) => element && context.added.push(element.id);
 
     const freeSpot = () => {
       const vb = canvas.viewbox();
@@ -63,6 +69,7 @@ class ApplyOpsHandler {
             const host = resolve(op.attachTo);
             if (!host) throw new Error("missing host");
             created = modeling.createShape(shape, { x: host.x + host.width / 2, y: host.y + host.height }, host, { attach: true });
+            if (op.interrupting === false) modeling.updateProperties(created, { cancelActivity: false });
           } else if (op.after) {
             const source = resolve(op.after);
             if (!source) throw new Error("missing source");
@@ -73,7 +80,8 @@ class ApplyOpsHandler {
           }
           if (op.name) modeling.updateLabel(created, op.name);
           if (op.ref) refs[op.ref] = created;
-          mark(created);
+          markNew(created);
+          for (const connection of created.incoming ?? []) markNew(connection);
         } else if (op.op === "insert") {
           const connection = resolve(op.flow);
           if (!connection?.source || !connection?.target) throw new Error("missing flow");
@@ -104,7 +112,8 @@ class ApplyOpsHandler {
           if (wasDefault && incoming) modeling.updateProperties(source, { default: incoming.businessObject });
           if (op.name) modeling.updateLabel(created, op.name);
           if (op.ref) refs[op.ref] = created;
-          mark(created);
+          markNew(created);
+          for (const flow of [...(created.incoming ?? []), ...(created.outgoing ?? [])]) markNew(flow);
         } else if (op.op === "connect") {
           const source = resolve(op.source);
           const target = resolve(op.target);
@@ -113,7 +122,7 @@ class ApplyOpsHandler {
           if (!allowed) throw new Error("not allowed");
           const connection = modeling.connect(source, target, allowed);
           if (op.name && connection) modeling.updateLabel(connection, op.name);
-          mark(connection);
+          markNew(connection);
         } else if (op.op === "rename") {
           const element = resolve(op.element);
           if (!element) throw new Error("missing element");
@@ -156,37 +165,65 @@ class ApplyOpsHandler {
   }
 }
 
-export function applyOps(editor: BpmnEditor, ops: AiOp[]): { changed: string[]; skipped: number } {
+export function applyOps(editor: BpmnEditor, ops: AiOp[], title: string): AiChange {
   const commandStack = service(editor, "commandStack");
+  const eventBus = service(editor, "eventBus");
   if (!commandStack._handlerMap?.[APPLY_COMMAND]) commandStack.registerHandler(APPLY_COMMAND, ApplyOpsHandler);
-  const context: Context = { ops, changed: [], skipped: 0 };
+  const tag = `ai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const context: Context = { ops, added: [], changed: [], skipped: 0 };
+  clearChangeMarkers(editor);
+  eventBus.fire(AI_APPLYING_EVENT, { tag });
   commandStack.execute(APPLY_COMMAND, context);
-  const changed = [...new Set(context.changed)];
-  flash(editor, changed);
-  return { changed, skipped: context.skipped };
+  const registry = service(editor, "elementRegistry");
+  const added = [...new Set(context.added)].filter((id) => registry.get(id));
+  const changed = [...new Set(context.changed)].filter((id) => registry.get(id) && !added.includes(id));
+  showChangeMarkers(editor, added, changed);
+  const change: AiChange = { tag, title, added, changed, skipped: context.skipped };
+  if (added.length || changed.length) focusElements(editor, [...added, ...changed], { select: false, highlight: false });
+  eventBus.fire(AI_APPLIED_EVENT, change);
+  return change;
 }
 
-function flash(editor: BpmnEditor, ids: string[]) {
+let marked: string[] = [];
+
+function showChangeMarkers(editor: BpmnEditor, added: string[], changed: string[]) {
+  const canvas = service(editor, "canvas");
+  for (const id of added) canvas.addMarker(id, ADDED_MARKER);
+  for (const id of changed) canvas.addMarker(id, CHANGED_MARKER);
+  marked = [...added, ...changed];
+}
+
+export function clearChangeMarkers(editor: BpmnEditor): void {
   const canvas = service(editor, "canvas");
   const registry = service(editor, "elementRegistry");
-  const present = ids.filter((id) => registry.get(id));
-  for (const id of present) canvas.addMarker(id, CHANGED_MARKER);
-  setTimeout(() => {
-    for (const id of present) if (registry.get(id)) canvas.removeMarker(id, CHANGED_MARKER);
-  }, 2600);
+  for (const id of marked) {
+    if (!registry.get(id)) continue;
+    canvas.removeMarker(id, ADDED_MARKER);
+    canvas.removeMarker(id, CHANGED_MARKER);
+  }
+  marked = [];
+}
+
+export function selectableElements(editor: BpmnEditor, selection: Element[]): Element[] {
+  const root = service(editor, "canvas").getRootElement();
+  return selection.filter((e) => e.type !== "label" && e.id !== root?.id);
 }
 
 let focused: string[] = [];
 
-export function focusElements(editor: BpmnEditor, ids: string[]): void {
+export function focusElements(
+  editor: BpmnEditor,
+  ids: string[],
+  { select = true, highlight = true }: { select?: boolean; highlight?: boolean } = {},
+): void {
   const canvas = service(editor, "canvas");
   const registry = service(editor, "elementRegistry");
   for (const id of focused) if (registry.get(id)) canvas.removeMarker(id, FOCUS_MARKER);
   const elements = ids.map((id) => registry.get(id)).filter(Boolean);
   focused = elements.map((e: Element) => e.id);
   if (!elements.length) return;
-  for (const element of elements) canvas.addMarker(element.id, FOCUS_MARKER);
-  if (hasService(editor, "selection")) service(editor, "selection").select(elements.filter((e: Element) => !e.waypoints || elements.length === 1));
+  if (highlight) for (const element of elements) canvas.addMarker(element.id, FOCUS_MARKER);
+  if (select && hasService(editor, "selection")) service(editor, "selection").select(elements.filter((e: Element) => !e.waypoints || elements.length === 1));
 
   const boxes = elements.map((e: Element) =>
     e.waypoints

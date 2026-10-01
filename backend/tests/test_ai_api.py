@@ -1,4 +1,3 @@
-import json
 import uuid
 
 import pytest
@@ -7,7 +6,7 @@ from sqlalchemy import func, select
 from app.ai.graph import build_graph
 from app.ai.llm import Usage, pick_latest, set_provider
 from app.ai.ops import InvalidOps, Op, validate_ops
-from app.ai.results import AiProcess, AiReview, AiSuggestions
+from app.ai.results import AiCommand, AiProcess, AiReview, AiSuggestions
 from app.config import settings
 from app.db import utcnow
 from app.models import AiUsage
@@ -19,24 +18,20 @@ class FakeProvider:
     def __init__(self) -> None:
         self.review: dict = {"summary": "", "verdict": "solid", "issues": [], "improvements": []}
         self.suggestions: dict = {"suggestions": []}
-        self.chunks: list[str] = []
+        self.commands: list[dict] = []
         self.processes: list[dict] = []
         self.prompts: list[str] = []
 
-    async def generate_json(self, tier, system, prompt, schema):
+    async def generate_json(self, tier, system, prompt, schema, thinking=None):
         self.prompts.append(prompt)
         if schema is AiProcess:
             return schema.model_validate(self.processes.pop(0)), Usage("gemini-test-pro", 1000, 1200)
+        if schema is AiCommand:
+            return schema.model_validate(self.commands.pop(0)), Usage("gemini-test-pro", 1500, 300)
         data = self.review if schema is AiReview else self.suggestions
         return schema.model_validate(data), Usage(
             f"gemini-test-{'pro' if tier == 'smart' else 'flash'}", 2000, 800
         )
-
-    async def stream_text(self, tier, system, contents):
-        self.prompts.append(contents[-1][1])
-        for chunk in self.chunks:
-            yield chunk
-        yield Usage("gemini-test-pro", 1500, 300)
 
 
 @pytest.fixture
@@ -183,7 +178,7 @@ async def test_suggestions_for_the_selected_element(fake_ai, make_user: MakeUser
             },
             {
                 "title": "Nonsense",
-                "ops": [{"op": "add", "ref": "new1", "type": "bpmn:Banana", "after": start}],
+                "ops": [{"op": "add", "ref": "new1", "type": "bpmn:Banana", "name": "Fruit", "after": start}],
             },
         ]
     }
@@ -194,20 +189,72 @@ async def test_suggestions_for_the_selected_element(fake_ai, make_user: MakeUser
     assert r.status_code == 400
 
 
-async def test_chat_streams_an_answer_and_records_usage(fake_ai, make_user: MakeUser, db):
+async def test_command_answers_questions_without_changes(fake_ai, make_user: MakeUser, db):
     owner = await make_user()
     diagram_id, start = await diagram_with_start(owner)
-    fake_ai.chunks = ["The process ", f"starts at [{start}]."]
+    fake_ai.commands = [{"reply": f"It starts at [{start}].", "ops": []}]
     r = await owner.client.post(
-        f"/api/diagrams/{diagram_id}/ai/chat",
-        json={"messages": [{"role": "user", "text": "Where does it start?"}]},
+        f"/api/diagrams/{diagram_id}/ai/command",
+        json={"messages": [{"role": "user", "text": "Where does it start?"}], "selection": [start, "Nope"]},
     )
-    assert r.status_code == 200
-    events = [json.loads(line[6:]) for line in r.text.splitlines() if line.startswith("data: ")]
-    assert "".join(e.get("delta", "") for e in events) == f"The process starts at [{start}]."
-    assert events[-1] == {"done": True}
+    assert r.status_code == 200, r.text
+    assert r.json()["reply"] == f"It starts at [{start}]." and r.json()["ops"] == []
+    assert f"- {start} (startEvent)" in fake_ai.prompts[-1] and "Nope" not in fake_ai.prompts[-1]
     count = await db.scalar(select(func.count()).where(AiUsage.kind == "chat"))
     assert count == 1
+
+
+async def test_command_returns_a_checked_change(fake_ai, make_user: MakeUser):
+    owner = await make_user()
+    diagram_id, start = await diagram_with_start(owner)
+    change = {"op": "add", "ref": "new1", "type": "bpmn:EndEvent", "name": "Done", "after": start}
+    fake_ai.commands = [{"reply": "Added an end.", "title": "Finish the process", "ops": [change]}]
+    r = await owner.client.post(
+        f"/api/diagrams/{diagram_id}/ai/command",
+        json={"messages": [{"role": "user", "text": "Finish this"}], "selection": [start]},
+    )
+    body = r.json()
+    assert (body["title"], body["rejected"], body["ops"][0]["op"]) == ("Finish the process", False, "add")
+    assert body["resolves"]
+
+
+async def test_command_that_introduces_problems_is_corrected(fake_ai, make_user: MakeUser):
+    owner = await make_user()
+    diagram_id, start = await diagram_with_start(owner)
+    fake_ai.commands = [
+        {
+            "reply": "Added.",
+            "title": "Dangling",
+            "ops": [{"op": "add", "ref": "n", "type": "bpmn:Task", "name": "Work", "after": start}],
+        },
+        {
+            "reply": "Added.",
+            "title": "Finish",
+            "ops": [{"op": "add", "ref": "n", "type": "bpmn:EndEvent", "name": "Done", "after": start}],
+        },
+    ]
+    r = await owner.client.post(
+        f"/api/diagrams/{diagram_id}/ai/command", json={"messages": [{"role": "user", "text": "Continue"}]}
+    )
+    assert r.json()["title"] == "Finish" and r.json()["sideEffects"] == []
+    assert "found a problem" in fake_ai.prompts[-1]
+
+
+async def test_rejected_command_is_retried_once_then_dropped(fake_ai, make_user: MakeUser, db):
+    owner = await make_user()
+    diagram_id, start = await diagram_with_start(owner)
+    broken = {"op": "connect", "source": start, "target": "Ghost"}
+    fake_ai.commands = [
+        {"reply": "Connected.", "title": "Connect", "ops": [broken]},
+        {"reply": "Connected.", "title": "Connect", "ops": [broken]},
+    ]
+    r = await owner.client.post(
+        f"/api/diagrams/{diagram_id}/ai/command", json={"messages": [{"role": "user", "text": "Connect it"}]}
+    )
+    body = r.json()
+    assert (body["rejected"], body["ops"]) == (True, [])
+    assert "found a problem" in fake_ai.prompts[-1] and "Ghost" in fake_ai.prompts[-1]
+    assert await db.scalar(select(func.count()).where(AiUsage.kind == "chat")) == 2
 
 
 def test_operation_validation():

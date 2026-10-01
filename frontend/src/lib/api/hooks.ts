@@ -6,6 +6,7 @@ import { clearLocalCopies } from "@/editor/collab/local-copy";
 
 import { api, ApiError } from "./client";
 import type {
+  AiCommandResult,
   AiGenerated,
   AiReview,
   AiStatus,
@@ -541,40 +542,13 @@ export function useAiSuggest(diagramId: string) {
   });
 }
 
-export async function streamAiChat(
-  diagramId: string,
-  messages: ChatTurn[],
-  onDelta: (text: string) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const res = await fetch(`/api/diagrams/${diagramId}/ai/chat`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify({ messages }),
-    signal,
+export function useAiCommand(diagramId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messages, selection, language }: { messages: ChatTurn[]; selection: string[]; language: string }) =>
+      api<AiCommandResult>(`/diagrams/${diagramId}/ai/command`, { method: "POST", body: { messages, selection, language } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
-  if (!res.ok || !res.body) {
-    const body = await res.json().catch(() => null);
-    throw new ApiError(res.status, (body as { detail?: string } | null)?.detail ?? "ai_failed", body);
-  }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const event of events) {
-      const line = event.split("\n").find((l) => l.startsWith("data: "));
-      if (!line) continue;
-      const payload = JSON.parse(line.slice(6)) as { delta?: string; error?: string };
-      if (payload.error) throw new ApiError(502, payload.error, payload);
-      if (payload.delta) onDelta(payload.delta);
-    }
-  }
 }
 
 export function useAiGenerate(projectId: string) {

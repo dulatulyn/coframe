@@ -238,9 +238,24 @@
   stroke-dasharray: none;
 }
 
+.coframe-editor .djs-element.coframe-ai-added .djs-outline {
+  visibility: visible;
+  stroke: #30a46c;
+  stroke-width: 3px;
+  stroke-dasharray: none;
+}
+
+.coframe-editor .djs-shape.coframe-ai-added .djs-visual > :first-child {
+  fill: #e9f9ee !important;
+}
+
+.coframe-editor .djs-connection.coframe-ai-added .djs-visual > path {
+  stroke: #30a46c !important;
+}
+
 .coframe-editor .djs-element.coframe-ai-changed .djs-outline {
   visibility: visible;
-  stroke: #8e4ec6;
+  stroke: #f5a524;
   stroke-width: 3px;
   stroke-dasharray: 5 4;
 }

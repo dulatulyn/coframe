@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -67,6 +67,9 @@ class Op(BaseModel):
         description="add: id of the element the new one follows; it is placed and connected after it.",
     )
     attach_to: str | None = Field(default=None, description="add of a bpmn:BoundaryEvent: the activity id.")
+    interrupting: bool | None = Field(
+        default=None, description="add of a bpmn:BoundaryEvent: false keeps the activity running."
+    )
     source: str | None = Field(default=None, description="connect: id of the source element.")
     target: str | None = Field(default=None, description="connect: id of the target element.")
     element: str | None = Field(
@@ -75,6 +78,83 @@ class Op(BaseModel):
     flow: str | None = Field(
         default=None, description="insert/set_default/label_flow: id of the sequence flow."
     )
+
+
+Id = Annotated[str, Field(description="An id given in the diagram or a ref created by an earlier operation.")]
+NewRef = Annotated[str, Field(description="A new temporary id such as new1, unique in this proposal.")]
+FlowId = Annotated[str, Field(description="Id of an existing sequence flow, exactly as given.")]
+EventTrigger = Annotated[
+    str | None, Field(description="Trigger for events: message, timer, error, signal, ...; null for none.")
+]
+
+
+class AddOp(BaseModel):
+    op: Literal["add"]
+    ref: NewRef
+    type: str = Field(description="BPMN type such as bpmn:UserTask, bpmn:EndEvent or bpmn:BoundaryEvent.")
+    name: str
+    event: EventTrigger = None
+    after: Id | None = Field(
+        default=None, description="The new element is placed after and connected from it."
+    )
+    attach_to: Id | None = Field(default=None, description="Activity id, only for bpmn:BoundaryEvent.")
+    interrupting: bool | None = Field(
+        default=None,
+        description="Only for bpmn:BoundaryEvent: false for a non-interrupting event such as a reminder that "
+        "lets the activity continue; null or true cancels the activity.",
+    )
+
+
+class InsertOp(BaseModel):
+    op: Literal["insert"]
+    ref: NewRef
+    type: str = Field(description="A task, intermediate event or gateway type such as bpmn:UserTask.")
+    name: str
+    flow: FlowId
+    event: EventTrigger = None
+
+
+class ConnectOp(BaseModel):
+    op: Literal["connect"]
+    source: Id = Field(description="An element id or ref, or a pool id for a message flow from that pool.")
+    target: Id = Field(description="An element id or ref, or a pool id for a message flow to that pool.")
+
+
+class RenameOp(BaseModel):
+    op: Literal["rename"]
+    element: Id
+    name: str
+
+
+class RetypeOp(BaseModel):
+    op: Literal["retype"]
+    element: Id
+    type: str = Field(description="New BPMN type of the same family, e.g. bpmn:ExclusiveGateway.")
+    event: EventTrigger = None
+
+
+class RemoveOp(BaseModel):
+    op: Literal["remove"]
+    element: Id
+
+
+class SetDefaultOp(BaseModel):
+    op: Literal["set_default"]
+    element: Id = Field(description="The decision gateway.")
+    flow: FlowId
+
+
+class LabelFlowOp(BaseModel):
+    op: Literal["label_flow"]
+    flow: FlowId
+    name: str
+
+
+AnyOp = AddOp | InsertOp | ConnectOp | RenameOp | RetypeOp | RemoveOp | SetDefaultOp | LabelFlowOp
+
+
+def as_op(value: Op | BaseModel) -> Op:
+    return value if isinstance(value, Op) else Op(**value.model_dump())
 
 
 def _family(type_name: str) -> str:
@@ -101,7 +181,8 @@ class InvalidOps(ValueError):
     pass
 
 
-def validate_ops(ops: list[Op], graph: Graph) -> list[Op]:
+def validate_ops(ops: list[Op] | list[AnyOp], graph: Graph) -> list[Op]:
+    ops = [as_op(op) for op in ops]
     nodes = dict(graph.nodes)
     flows = {f.id: f for f in graph.flows.values()}
     renamable = set(nodes) | set(flows) | set(graph.pools) | set(graph.lanes)
@@ -123,6 +204,8 @@ def validate_ops(ops: list[Op], graph: Graph) -> list[Op]:
                 raise InvalidOps(f"{where}: type {op.type} is not allowed")
             if op.event and (op.type not in EVENT_TYPES or op.event not in EVENT_DEFINITIONS):
                 raise InvalidOps(f"{where}: event {op.event} does not fit {op.type}")
+            if op.interrupting is not None and op.type != "bpmn:BoundaryEvent":
+                raise InvalidOps(f"{where}: only boundary events can be non-interrupting")
             if op.type == "bpmn:BoundaryEvent":
                 host = node_or_ref(op.attach_to, f"{where}: attach_to")
                 if host in nodes and nodes[host].kind not in ACTIVITIES:
@@ -145,10 +228,19 @@ def validate_ops(ops: list[Op], graph: Graph) -> list[Op]:
                 raise InvalidOps(f"{where}: flow {op.flow} is not a sequence flow")
             created[op.ref] = op.type
         elif op.op == "connect":
-            source = node_or_ref(op.source, f"{where}: source")
-            target = node_or_ref(op.target, f"{where}: target")
+            pools = graph.pools
+            source = op.source if op.source in pools else node_or_ref(op.source, f"{where}: source")
+            target = op.target if op.target in pools else node_or_ref(op.target, f"{where}: target")
             if source == target:
                 raise InvalidOps(f"{where}: cannot connect an element to itself")
+            for pool, other in ((source, target), (target, source)):
+                if pool not in pools:
+                    continue
+                if other in pools:
+                    continue
+                other_pool = nodes[other].pool if other in nodes else None
+                if other_pool == pool:
+                    raise InvalidOps(f"{where}: {other} is inside pool {pool}")
         elif op.op == "rename":
             if not op.element or (op.element not in renamable and op.element not in created):
                 raise InvalidOps(f"{where}: element {op.element} does not exist")

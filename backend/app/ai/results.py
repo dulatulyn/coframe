@@ -2,12 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.ai.ops import Op
+from app.ai.ops import AnyOp
 
 
 class AiFix(BaseModel):
     title: str = Field(description="What the fix does, as a short imperative.")
-    ops: list[Op]
+    ops: list[AnyOp]
 
 
 class AiIssue(BaseModel):
@@ -21,7 +21,7 @@ class AiIssue(BaseModel):
 class AiImprovement(BaseModel):
     title: str
     rationale: str
-    ops: list[Op]
+    ops: list[AnyOp]
 
 
 class AiReview(BaseModel):
@@ -31,9 +31,17 @@ class AiReview(BaseModel):
     improvements: list[AiImprovement]
 
 
+class AiCommand(BaseModel):
+    reply: str = Field(description="The answer to the user, or one or two sentences on what the change does.")
+    title: str | None = Field(
+        default=None, description="Short imperative name of the change; null without ops."
+    )
+    ops: list[AnyOp] = Field(default_factory=list, description="Operations that make the requested change.")
+
+
 class AiSuggestion(BaseModel):
     title: str
-    ops: list[Op]
+    ops: list[AnyOp]
 
 
 class AiSuggestions(BaseModel):

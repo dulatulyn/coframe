@@ -129,6 +129,7 @@ export type AiOp = {
   name?: string | null;
   after?: string | null;
   attachTo?: string | null;
+  interrupting?: boolean | null;
   source?: string | null;
   target?: string | null;
   element?: string | null;
@@ -162,5 +163,14 @@ export type AiStatus = {
 };
 
 export type ChatTurn = { role: "user" | "assistant"; text: string };
+
+export type AiCommandResult = {
+  reply: string;
+  title: string | null;
+  ops: AiOp[];
+  resolves: string[];
+  sideEffects: string[];
+  rejected: boolean;
+};
 
 export type AiGenerated = { name: string; xml: string; findings: Finding[]; rounds: number };

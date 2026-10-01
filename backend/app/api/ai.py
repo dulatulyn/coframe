@@ -1,30 +1,28 @@
-import json
 import logging
 import uuid
-from collections.abc import AsyncIterator
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import StreamingResponse
 
 from app.ai import budget, prompts
 from app.ai.checks import Finding, run_checks
 from app.ai.describe import describe
 from app.ai.generate import InvalidProcess, outline, process_xml
 from app.ai.graph import Graph, build_graph
-from app.ai.llm import AiFailed, AiUnavailable, Usage, provider
+from app.ai.llm import AiFailed, AiUnavailable, provider
 from app.ai.ops import InvalidOps, Op, validate_ops
-from app.ai.results import AiProcess, AiReview, AiSuggestions
+from app.ai.results import AiCommand, AiProcess, AiReview, AiSuggestions
 from app.ai.simulate import Outcome, evaluate
 from app.bpmn.xmlsafe import InvalidXml
-from app.db import SessionLocal
 from app.deps import CurrentUser, Db
 from app.models import Access
 from app.permissions import load_diagram, load_project
 from app.schemas.ai import (
     AiLimitOut,
     AiStatusOut,
-    ChatIn,
     CheckOut,
+    CommandIn,
+    CommandOut,
     FindingOut,
     FixOut,
     GenerateIn,
@@ -75,17 +73,12 @@ def ops_out(ops: list[Op]) -> list[OpOut]:
     return [OpOut(**op.model_dump()) for op in ops]
 
 
-def checked(ops: list[Op], graph: Graph, findings: list[Finding]) -> tuple[list[Op], Outcome] | None:
-    try:
-        valid = validate_ops(ops, graph)
-    except InvalidOps as exc:
-        log.info("dropped an AI suggestion: %s", exc)
+def checked(ops: list[Any], graph: Graph, findings: list[Finding]) -> tuple[list[Op], Outcome] | None:
+    outcome = check_ops(ops, graph, findings)
+    if isinstance(outcome, str):
+        log.info("dropped an AI suggestion: %s", outcome)
         return None
-    outcome = evaluate(graph, findings, valid)
-    if outcome.breaks_model:
-        log.info("dropped an AI suggestion that breaks the model: %s", [f.rule for f in outcome.introduces])
-        return None
-    return valid, outcome
+    return outcome
 
 
 def findings_out(findings: list[Finding]) -> list[FindingOut]:
@@ -201,45 +194,90 @@ async def ai_suggest(diagram_id: uuid.UUID, body: SuggestIn, user: CurrentUser, 
     return SuggestOut(suggestions=suggestions)
 
 
-@router.post("/diagrams/{diagram_id}/ai/chat")
-async def ai_chat(diagram_id: uuid.UUID, body: ChatIn, user: CurrentUser, db: Db) -> StreamingResponse:
+def selection_text(graph: Graph, ids: list[str]) -> str:
+    lines = []
+    for element_id in dict.fromkeys(ids):
+        if node := graph.nodes.get(element_id):
+            lines.append(f"- {node.id} ({node.kind}) {node.label}")
+        elif flow := graph.flows.get(element_id):
+            lines.append(f"- {flow.id} ({flow.kind} flow) {flow.source} -> {flow.target}")
+        elif element_id in graph.pools or element_id in graph.lanes:
+            lines.append(f"- {element_id} (pool or lane)")
+    return "\n".join(lines)
+
+
+def check_ops(ops: list[Any], graph: Graph, findings: list[Finding]) -> tuple[list[Op], Outcome] | str:
+    try:
+        valid = validate_ops(ops, graph)
+    except InvalidOps as exc:
+        return str(exc)
+    outcome = evaluate(graph, findings, valid)
+    if outcome.breaks_model:
+        return "the change breaks the model: " + "; ".join(f.message for f in outcome.introduces)
+    return valid, outcome
+
+
+def new_problems(outcome: Outcome) -> str | None:
+    found = [f.message for f in outcome.introduces if f.severity != "info"]
+    return "it introduces " + "; ".join(found) if found else None
+
+
+@router.post("/diagrams/{diagram_id}/ai/command", response_model=CommandOut)
+async def ai_command(diagram_id: uuid.UUID, body: CommandIn, user: CurrentUser, db: Db) -> CommandOut:
     await budget.ensure_allowed(db, user, "chat")
     messages = [m for m in body.messages if m.text.strip()][-MAX_CHAT_MESSAGES:]
     if not messages or messages[-1].role != "user":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="question_required")
     graph, findings = await analyse(db, user, diagram_id)
-    context = f"The diagram as it is right now:\n{model_text(graph, findings)}"
-    contents = [("user", context), ("assistant", "Understood. Ask me about this diagram.")]
-    contents += [(m.role, m.text[:MAX_MESSAGE_CHARS]) for m in messages]
-    try:
-        model = provider()
-    except AiUnavailable as exc:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="ai_not_configured") from exc
-    user_id = user.id
+    selected = selection_text(graph, body.selection)
+    earlier = "\n".join(f"{m.role}: {m.text[:MAX_MESSAGE_CHARS]}" for m in messages[:-1])
+    prompt = (
+        f"Diagram:\n{model_text(graph, findings)}\n\n"
+        + (f"Selected elements:\n{selected}\n\n" if selected else "Nothing is selected.\n\n")
+        + (f"Conversation so far:\n{earlier}\n\n" if earlier else "")
+        + f"Interface language: {body.language[:40]}.\n"
+        + f"User: {messages[-1].text[:MAX_MESSAGE_CHARS]}"
+    )
+    model = provider()
 
-    async def events() -> AsyncIterator[str]:
-        usage: Usage | None = None
+    async def ask(text: str) -> AiCommand:
         try:
-            async for part in model.stream_text("smart", prompts.CHAT, contents):
-                if isinstance(part, Usage):
-                    usage = part
-                else:
-                    yield f"data: {json.dumps({'delta': part})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        except Exception:
-            log.exception("AI chat failed")
-            yield f"data: {json.dumps({'error': 'ai_failed'})}\n\n"
-        finally:
-            if usage is not None:
-                async with SessionLocal() as session:
-                    owner = await session.get(type(user), user_id)
-                    if owner is not None:
-                        await budget.record(session, owner, "chat", usage)
+            result, usage = await model.generate_json(
+                "smart", prompts.COMMAND, text, AiCommand, thinking="LOW"
+            )
+        except Exception as exc:
+            raise await _call_failed(db, user, "chat", exc) from exc
+        await budget.record(db, user, "chat", usage)
+        return result
 
-    return StreamingResponse(
-        events(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    result = await ask(prompt)
+    if not result.ops:
+        return CommandOut(reply=result.reply)
+    outcome = check_ops(result.ops, graph, findings)
+    issue = outcome if isinstance(outcome, str) else new_problems(outcome[1])
+    if issue:
+        log.info("AI command needs a correction: %s", issue)
+        retry = await ask(
+            f"{prompt}\n\nThe code checker found a problem with your previous answer: {issue}.\n"
+            "Return a corrected answer that makes the requested change without this problem. "
+            "Use only ids that exist in the diagram or refs you create."
+        )
+        if retry.ops:
+            second = check_ops(retry.ops, graph, findings)
+            if not isinstance(second, str) and (isinstance(outcome, str) or not new_problems(second[1])):
+                result, outcome = retry, second
+        elif isinstance(outcome, str):
+            return CommandOut(reply=retry.reply)
+    if isinstance(outcome, str):
+        log.info("AI command dropped: %s", outcome)
+        return CommandOut(reply=result.reply, title=result.title, rejected=True)
+    valid, effects = outcome
+    return CommandOut(
+        reply=result.reply,
+        title=result.title or "AI change",
+        ops=ops_out(valid),
+        resolves=[f.message for f in effects.resolves],
+        side_effects=[f.message for f in effects.introduces],
     )
 
 
@@ -262,7 +300,7 @@ async def ai_generate(project_id: uuid.UUID, body: GenerateIn, user: CurrentUser
         return result
 
     process = await ask(
-        prompts.GENERATE, f"Description:\n{body.description}\n\nWrite labels in {language}.", "generate"
+        prompts.GENERATE, f"Description:\n{body.description}\n\nRequested language: {language}.", "generate"
     )
     rounds = 0
     while True:
@@ -278,7 +316,7 @@ async def ai_generate(project_id: uuid.UUID, body: GenerateIn, user: CurrentUser
         listed = "\n".join(f"- {p}" for p in problems)
         process = await ask(
             prompts.REPAIR,
-            f"Process:\n{outline(process)}\n\nProblems:\n{listed}\n\nWrite labels in {language}.",
+            f"Process:\n{outline(process)}\n\nProblems:\n{listed}\n\nKeep the language of the labels.",
             "generate_fix",
         )
     if xml is None:

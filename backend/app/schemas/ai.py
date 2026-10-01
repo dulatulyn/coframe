@@ -26,6 +26,7 @@ class OpOut(Schema):
     name: str | None = None
     after: str | None = None
     attach_to: str | None = None
+    interrupting: bool | None = None
     source: str | None = None
     target: str | None = None
     element: str | None = None
@@ -72,8 +73,19 @@ class ChatMessage(Schema):
     text: str
 
 
-class ChatIn(Schema):
-    messages: list[ChatMessage]
+class CommandIn(Schema):
+    messages: list[ChatMessage] = Field(min_length=1)
+    selection: list[str] = Field(default=[], max_length=500)
+    language: str = "English"
+
+
+class CommandOut(Schema):
+    reply: str
+    title: str | None = None
+    ops: list[OpOut] = []
+    resolves: list[str] = []
+    side_effects: list[str] = []
+    rejected: bool = False
 
 
 class SuggestIn(Schema):
