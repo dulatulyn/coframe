@@ -415,6 +415,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           editor={editor}
           element={selected}
           readOnly={readOnly}
+          projectId={project.id}
+          diagramId={diagram.id}
           onClose={() => inspector.setOpen(false)}
           className={cn(
             "absolute z-30 overflow-y-auto rounded-[24px] border border-hairline bg-paper shadow-float",

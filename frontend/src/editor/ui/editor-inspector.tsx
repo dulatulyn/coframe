@@ -1,10 +1,12 @@
 "use client";
 
-import { ArrowLeftRight, Copy, X } from "lucide-react";
+import { ArrowLeftRight, Copy, ExternalLink, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Glyph } from "@/components/bpmn/glyphs";
+import { useTree } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
 import { service, type BpmnEditor } from "../modeler";
@@ -42,18 +44,77 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function LinkField({
+  editor,
+  element,
+  readOnly,
+  projectId,
+  diagramId,
+  label,
+  empty,
+}: {
+  editor: BpmnEditor;
+  element: Shape;
+  readOnly: boolean;
+  projectId: string;
+  diagramId: string;
+  label: string;
+  empty: string;
+}) {
+  const { data: tree } = useTree(projectId);
+  const router = useRouter();
+  const linked: string = element.businessObject?.get?.("coframe:diagram") ?? "";
+  const options = (tree?.diagrams ?? []).filter((d) => d.id !== diagramId);
+  const target = options.find((d) => d.id === linked);
+  return (
+    <Field label={label}>
+      <div className="flex gap-2">
+        <select
+          data-inspector-field
+          value={linked}
+          disabled={readOnly}
+          onChange={(e) => service(editor, "modeling").updateProperties(element, { "coframe:diagram": e.target.value || undefined })}
+          className="h-10 min-w-0 flex-1 rounded-xl bg-fog px-3 text-[14px] outline-none focus:ring-2 focus:ring-cobalt"
+        >
+          <option value="">{empty}</option>
+          {options.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+          {linked && !target && <option value={linked}>Missing diagram</option>}
+        </select>
+        {target && (
+          <button
+            type="button"
+            onClick={() => router.push(`/p/${projectId}/${target.id}`)}
+            title={`Open ${target.name}`}
+            className="grid size-10 shrink-0 place-items-center rounded-xl border border-hairline hover:bg-fog"
+          >
+            <ExternalLink className="size-4" />
+          </button>
+        )}
+      </div>
+    </Field>
+  );
+}
+
 export function EditorInspector({
   editor,
   element,
   readOnly,
   onClose,
   className,
+  projectId,
+  diagramId,
 }: {
   editor: BpmnEditor;
   element: Shape;
   readOnly: boolean;
   onClose: () => void;
   className?: string;
+  projectId: string;
+  diagramId: string;
 }) {
   const [name, setName] = useState(nameOf(element));
   const [doc, setDoc] = useState(documentationOf(element));
@@ -200,6 +261,18 @@ export function EditorInspector({
               ))}
             </div>
           </Field>
+        )}
+
+        {element.type === "bpmn:CallActivity" && (
+          <LinkField
+            editor={editor}
+            element={element}
+            readOnly={readOnly}
+            projectId={projectId}
+            diagramId={diagramId}
+            label="Calls diagram"
+            empty="Not linked"
+          />
         )}
 
         <Field label="Documentation">

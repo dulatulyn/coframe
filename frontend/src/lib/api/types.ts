@@ -90,6 +90,11 @@ export type Comment = {
   resolvedBy: PublicUser | null;
 };
 
+export type ProcessMap = {
+  diagrams: { id: string; name: string; previewUpdatedAt: string | null }[];
+  links: { source: string; target: string; label: string; kind: "call" | "decision" }[];
+};
+
 export type PublicDiagram = { name: string; xml: string; projectName: string; contentUpdatedAt: string };
 
 export type DiagramVersion = { id: string; createdAt: string; source: "auto" | "restore"; author: PublicUser | null };

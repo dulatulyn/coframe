@@ -17,6 +17,7 @@ from app.api import (
     jams,
     me,
     oauth,
+    process_map,
     projects,
     public,
     versions,
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
         ai,
         public,
         comments,
+        process_map,
     ):
         api.include_router(module.router)
     api.include_router(realtime_routes.router)

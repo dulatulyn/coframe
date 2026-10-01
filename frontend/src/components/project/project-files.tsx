@@ -15,6 +15,7 @@ import {
   FolderPlus,
   GripVertical,
   MoreHorizontal,
+  Network,
   PanelLeftClose,
   Pencil,
   Pin,
@@ -304,6 +305,14 @@ export function ProjectFiles({
         <div className="min-w-0 flex-1">
           <div className="truncate text-[15px] font-semibold tracking-tight">{tree.project.name}</div>
         </div>
+        <Link
+          href={`/p/${tree.project.id}/map`}
+          aria-label="Process map"
+          title="Process map"
+          className="grid size-8 place-items-center rounded-full text-slate hover:bg-fog hover:text-ink"
+        >
+          <Network className="size-[18px]" strokeWidth={1.75} />
+        </Link>
         <button
           type="button"
           aria-label="Hide files"

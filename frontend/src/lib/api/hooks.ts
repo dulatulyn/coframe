@@ -15,6 +15,7 @@ import type {
   CheckResult,
   Comment,
   DiagramVersion,
+  ProcessMap,
   PublicDiagram,
   Access,
   Diagram,
@@ -541,6 +542,13 @@ export function useAiSuggest(diagramId: string) {
         body: { elementId, language },
       }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
+  });
+}
+
+export function useProcessMap(projectId: string) {
+  return useQuery({
+    queryKey: ["map", projectId],
+    queryFn: () => api<ProcessMap>(`/projects/${projectId}/map`),
   });
 }
 
