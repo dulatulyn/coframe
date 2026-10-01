@@ -39,6 +39,7 @@ import { ShortcutsDialog } from "./ui/shortcuts-dialog";
 import { SuggestPopover } from "./ui/suggest-popover";
 import { VersionHistoryDialog } from "./ui/version-history";
 import type { ViewMode } from "./views/modes";
+import { PathsPanel } from "./views/paths-panel";
 import { ViewBanner } from "./views/view-banner";
 
 type Element = any;
@@ -339,6 +340,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
       </div>
 
       {editor && !editing && <ViewBanner mode={view} onExit={() => setView("edit")} />}
+      {editor && view === "paths" && <PathsPanel editor={editor} />}
       {editor && assistantOpen && editing && (
         <AssistantPanel
           editor={editor}

@@ -220,7 +220,7 @@ export function EditorTopBar({
                 <ViewIcon mode={view} /> <span className="max-lg:hidden">{view === "edit" ? "Views" : viewInfo(view).label}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={(e) => e.preventDefault()}>
               {VIEWS.map((v) => (
                 <DropdownMenuItem key={v.id} onSelect={() => onView(v.id)} className={cn(view === v.id && "bg-fog")}>
                   <v.icon />

@@ -331,3 +331,16 @@
   stroke-width: 2px;
   stroke-dasharray: 4 3;
 }
+
+.coframe-editor .coframe-dim .djs-element:not(.coframe-path) .djs-visual {
+  opacity: 0.16;
+}
+
+.coframe-editor .coframe-dim .djs-element.coframe-path:not(.djs-connection) .djs-visual > :first-child {
+  stroke-width: 2.5px !important;
+}
+
+.coframe-editor .coframe-dim .djs-connection.coframe-path .djs-visual > path {
+  stroke: #3e63dd !important;
+  stroke-width: 2.5px !important;
+}
