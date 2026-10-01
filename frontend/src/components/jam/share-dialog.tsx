@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Link2, Radio, UserPlus } from "lucide-react";
+import { Check, Code2, Copy, ExternalLink, Globe, Link2, Link2Off, Radio, UserPlus } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,11 +16,12 @@ import {
   useEndJam,
   useJam,
   useMe,
+  usePublicLink,
   useStartJam,
   useUpdateJam,
   useWorkspace,
 } from "@/lib/api/hooks";
-import type { Access, Project, Role } from "@/lib/api/types";
+import type { Access, Diagram, Project, Role } from "@/lib/api/types";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -72,14 +73,17 @@ function Segmented<T extends string>({
 
 export function ShareDialog({
   project,
+  diagram,
   open,
   onOpenChange,
 }: {
   project: Project;
+  diagram?: Diagram;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [tab, setTab] = useState<"jam" | "invite">("jam");
+  const [tab, setTab] = useState<"jam" | "invite" | "public">("jam");
+  const publishable = diagram?.access === "edit";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
@@ -95,12 +99,86 @@ export function ShareDialog({
           className="w-full"
           options={[
             ["jam", "Jam session"],
-            ["invite", "Invite to workspace"],
+            ["invite", "Invite"],
+            ...(publishable ? ([["public", "Public link"]] as ["public", string][]) : []),
           ]}
         />
-        {tab === "jam" ? <JamPanel project={project} /> : <InvitePanel workspaceId={project.workspaceId} />}
+        {tab === "jam" ? (
+          <JamPanel project={project} />
+        ) : tab === "public" && diagram ? (
+          <PublicLinkPanel diagram={diagram} />
+        ) : (
+          <InvitePanel workspaceId={project.workspaceId} />
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PublicLinkPanel({ diagram }: { diagram: Diagram }) {
+  const { enable, disable } = usePublicLink(diagram.id);
+  const { copied, copy } = useCopy();
+  const token = diagram.publicToken;
+  const url = token ? `${window.location.origin}/v/${token}` : "";
+  const embed = token
+    ? `<iframe src="${url}?embed=1" width="100%" height="560" style="border:0;border-radius:12px" title="${diagram.name.replace(/"/g, "&quot;")}"></iframe>`
+    : "";
+
+  if (!token) {
+    return (
+      <div className="rounded-2xl bg-fog p-4">
+        <p className="text-[14px] leading-6">
+          Anyone with the link can view “{diagram.name}”, run the simulation and step through it, without an account.
+          They can&apos;t edit it, and you can turn the link off at any time.
+        </p>
+        <Button
+          className="mt-4 w-full"
+          disabled={enable.isPending}
+          onClick={() => enable.mutate(undefined, { onError: (e) => toast.error(errorMessage(e)) })}
+        >
+          <Globe /> Create public link
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-1.5 text-[13px] font-medium">View-only link</p>
+        <div className="flex gap-2">
+          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="h-10 min-w-0 flex-1 rounded-xl bg-fog px-3 text-[13px] outline-none" />
+          <Button variant="outline" onClick={() => copy("link", url)}>
+            {copied === "link" ? <Check /> : <Copy />} {copied === "link" ? "Copied" : "Copy"}
+          </Button>
+        </div>
+      </div>
+      <div>
+        <p className="mb-1.5 text-[13px] font-medium">Embed in Notion, Confluence or a website</p>
+        <div className="flex gap-2">
+          <input readOnly value={embed} onFocus={(e) => e.currentTarget.select()} className="h-10 min-w-0 flex-1 rounded-xl bg-fog px-3 font-mono text-[12px] outline-none" />
+          <Button variant="outline" onClick={() => copy("embed", embed)}>
+            {copied === "embed" ? <Check /> : <Code2 />} {copied === "embed" ? "Copied" : "Copy"}
+          </Button>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-hairline pt-3">
+        <Button asChild variant="ghost" size="sm">
+          <a href={url} target="_blank" rel="noreferrer">
+            <ExternalLink /> Open
+          </a>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          disabled={disable.isPending}
+          onClick={() => disable.mutate(undefined, { onError: (e) => toast.error(errorMessage(e)) })}
+        >
+          <Link2Off /> Turn off link
+        </Button>
+      </div>
+    </div>
   );
 }
 

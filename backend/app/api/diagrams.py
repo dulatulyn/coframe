@@ -61,7 +61,12 @@ async def create(
 @router.get("/diagrams/{diagram_id}", response_model=DiagramOut)
 async def get_diagram(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> DiagramOut:
     diagram, _, access = await load_diagram(db, user, diagram_id)
-    return DiagramOut(**diagram_fields(diagram), access=access.access, generation=diagram.generation)
+    return DiagramOut(
+        **diagram_fields(diagram),
+        access=access.access,
+        generation=diagram.generation,
+        public_token=diagram.public_token if access.access == Access.edit else None,
+    )
 
 
 @router.patch("/diagrams/{diagram_id}", response_model=DiagramMeta)

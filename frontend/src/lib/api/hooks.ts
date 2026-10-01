@@ -14,6 +14,7 @@ import type {
   ChatTurn,
   CheckResult,
   DiagramVersion,
+  PublicDiagram,
   Access,
   Diagram,
   DiagramMeta,
@@ -539,6 +540,30 @@ export function useAiSuggest(diagramId: string) {
         body: { elementId, language },
       }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
+  });
+}
+
+export function usePublicLink(diagramId: string) {
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: keys.diagram(diagramId) });
+  return {
+    enable: useMutation({
+      mutationFn: () => api<{ token: string }>(`/diagrams/${diagramId}/public-link`, { method: "PUT" }),
+      onSuccess: refresh,
+    }),
+    disable: useMutation({
+      mutationFn: () => api<void>(`/diagrams/${diagramId}/public-link`, { method: "DELETE" }),
+      onSuccess: refresh,
+    }),
+  };
+}
+
+export function usePublicDiagram(token: string) {
+  return useQuery({
+    queryKey: ["public", token],
+    queryFn: () => api<PublicDiagram>(`/public/${token}`),
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -328,7 +328,7 @@ export function EditorTopBar({
       </div>
       </div>
 
-      <ShareDialog project={project} open={shareOpen} onOpenChange={setShareOpen} />
+      <ShareDialog project={project} diagram={diagram} open={shareOpen} onOpenChange={setShareOpen} />
     </>
   );
 }

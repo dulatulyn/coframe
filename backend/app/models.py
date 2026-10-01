@@ -167,6 +167,7 @@ class Diagram(Base):
     content_updated_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
     deleted_at: Mapped[datetime | None] = mapped_column(Timestamp)
     trashed_with: Mapped[uuid.UUID | None] = mapped_column()
+    public_token: Mapped[str | None] = mapped_column(String(32), unique=True)
 
     updater: Mapped[User | None] = relationship(foreign_keys=[updated_by], lazy="joined")
 

@@ -59,6 +59,18 @@ class DiagramMeta(Schema):
 class DiagramOut(DiagramMeta):
     access: Access
     generation: int = 0
+    public_token: str | None = None
+
+
+class PublicLinkOut(Schema):
+    token: str
+
+
+class PublicDiagramOut(Schema):
+    name: str
+    xml: str
+    project_name: str
+    content_updated_at: datetime
 
 
 class DiagramVersionOut(Schema):
