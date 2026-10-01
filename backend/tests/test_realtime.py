@@ -203,7 +203,7 @@ async def test_changes_arriving_while_saving_are_saved_too(make_user: MakeUser, 
         injected = []
 
         def reconstruct_during_edit(elements):
-            if not injected:
+            if not injected and "Early" in elements:
                 injected.append(True)
                 process = next(k for k, e in elements.items() if e["t"] == "bpmn:process")
                 with room.doc.transaction():
@@ -218,7 +218,10 @@ async def test_changes_arriving_while_saving_are_saved_too(make_user: MakeUser, 
         with y.doc.transaction():
             y.elements["Early"] = Map({"t": "bpmn:task", "p": process, "o": "zz", "@name": "Early"})
         await y.flush()
-        await eventually(lambda: bool(injected) and not room.dirty)
+        await eventually(
+            lambda: bool(injected) and not room.dirty and 'name="Late"' in (room._last_xml or ""), timeout=5
+        )
+        await rooms.flush(uuid.UUID(diagram_id))
 
     xml = await db.scalar(select(Diagram.xml).where(Diagram.id == diagram_id))
     assert 'name="Early"' in xml and 'name="Late"' in xml

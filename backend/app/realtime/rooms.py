@@ -221,8 +221,6 @@ class DiagramRoom:
                     values["xml"] = reconstruct_xml(elements)
                 except Exception:
                     log.exception("could not rebuild XML for diagram %s", self.diagram_id)
-            if "xml" in values:
-                self._last_xml = values["xml"]
             try:
                 async with SessionLocal() as db:
                     await db.execute(update(Diagram).where(Diagram.id == self.diagram_id).values(**values))
@@ -235,6 +233,8 @@ class DiagramRoom:
                 self.mark_dirty(None)
                 return
             self._persisted = state_vector
+            if "xml" in values:
+                self._last_xml = values["xml"]
         await self.broadcast(persisted_message(state_vector))
         due = self._last_version_at is None or (now - self._last_version_at).total_seconds() >= (
             settings.version_interval
