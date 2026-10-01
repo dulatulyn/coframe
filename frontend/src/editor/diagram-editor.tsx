@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Keyboard, Map as MapIcon, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { toast } from "sonner";
 
 import type { CatalogItem } from "@/components/bpmn/catalog";
 import { NotationDock, type ToolId } from "@/components/editor-chrome/notation-dock";
@@ -30,6 +31,7 @@ import { EditorInspector } from "./ui/editor-inspector";
 import { EditorTopBar } from "./ui/editor-top-bar";
 import { SessionEndedOverlay } from "./ui/session-ended";
 import { ShortcutsDialog } from "./ui/shortcuts-dialog";
+import { VersionHistoryDialog } from "./ui/version-history";
 
 type Element = any;
 
@@ -61,6 +63,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [failed, setFailed] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const inspectorOpen = useProjectUi((s) => s.inspectorOpen);
   const filesOpen = useProjectUi((s) => s.filesOpen);
   const setInspectorOpen = useProjectUi((s) => s.setInspectorOpen);
@@ -69,7 +72,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
 
   useEffect(() => {
     let disposed = false;
-    const s = new DiagramSession(diagram.id);
+    const s = new DiagramSession(diagram.id, { generation: diagram.generation, keepLocalCopy: !readOnly });
     setSession(s);
     let ed: BpmnEditor | null = null;
     let b: BpmnBinding | null = null;
@@ -97,7 +100,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         ed.destroy();
         return;
       }
-      await s.whenSynced();
+      await s.whenReady();
       if (disposed) return;
       b = new BpmnBinding(ed, s, {
         readOnly,
@@ -180,6 +183,23 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const rootId = editor ? service(editor, "canvas").getRootElement()?.id : null;
   const inspectable = selected && selected.type !== "label" && selected.id !== rootId;
   const saveState = session?.saveState ?? "saved";
+  const restored = session?.ended?.code === 4409;
+
+  useEffect(() => {
+    if (readOnly || saveState === "saved") return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [saveState, readOnly]);
+
+  useEffect(() => {
+    if (!restored) return;
+    toast("An earlier version of this diagram was restored");
+    qc.invalidateQueries({ queryKey: keys.diagram(diagram.id) });
+  }, [restored]);
 
   return (
     <div className="coframe-editor absolute inset-0 isolate overflow-hidden bg-canvas">
@@ -190,7 +210,9 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         diagram={diagram}
         project={project}
         me={me}
-        saveState={session?.synced ? saveState : session?.connection === "offline" ? "offline" : "saving"}
+        saveState={
+          session?.synced || saveState === "local" ? saveState : session?.connection === "offline" ? "offline" : "saving"
+        }
         peers={peers}
         onFollow={(clientId) => presence?.jumpTo(clientId)}
         canUndo={!!binding?.canUndo}
@@ -199,6 +221,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         onRedo={() => binding?.redo()}
         readOnly={readOnly}
         onExport={editor ? (format) => void runExport(editor, format, diagram.name) : undefined}
+        onHistory={() => setHistoryOpen(true)}
       />
 
       {!readOnly && editor && (
@@ -279,9 +302,23 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           projectId={project.id}
         />
       )}
-      {session?.ended && <SessionEndedOverlay code={session.ended.code} projectId={project.id} />}
+      {session?.ended && !restored && <SessionEndedOverlay code={session.ended.code} projectId={project.id} />}
+      {restored && (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-paper/60 backdrop-blur-[2px]">
+          <div className="flex items-center gap-3 rounded-full border border-hairline bg-paper px-4 py-2.5 text-[14px] text-slate shadow-float">
+            <span className="size-2 animate-pulse rounded-full bg-cobalt" /> Loading the restored version…
+          </div>
+        </div>
+      )}
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <VersionHistoryDialog
+        diagramId={diagram.id}
+        diagramName={diagram.name}
+        canRestore={!readOnly}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
     </div>
   );
 }

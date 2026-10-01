@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCopy, Code2, Download, FileText, Image as ImageIcon, MoreHorizontal, PanelLeft, Redo2, Share2, Undo2 } from "lucide-react";
+import { ClipboardCopy, Code2, Download, FileText, History, Image as ImageIcon, MoreHorizontal, PanelLeft, Redo2, Share2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export function EditorTopBar({
   onRedo,
   readOnly,
   onExport,
+  onHistory,
 }: {
   diagram: Diagram;
   project: Project;
@@ -53,6 +54,7 @@ export function EditorTopBar({
   onRedo: () => void;
   readOnly: boolean;
   onExport?: (format: ExportFormat) => void;
+  onHistory?: () => void;
 }) {
   const { filesOpen, setFilesOpen } = useProjectUi();
   const [shareOpen, setShareOpen] = useState(false);
@@ -182,6 +184,14 @@ export function EditorTopBar({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {onHistory && (
+                <>
+                  <DropdownMenuItem onSelect={onHistory}>
+                    <History /> Version history
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onSelect={() => onExport("bpmn")}>
                 <Download /> Download .bpmn
               </DropdownMenuItem>

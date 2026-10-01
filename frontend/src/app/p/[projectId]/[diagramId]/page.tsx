@@ -25,5 +25,5 @@ export default function DiagramPage() {
   }, [error, projectId, router]);
 
   if (!diagram || !tree || !me) return <div className="dot-grid absolute inset-0" />;
-  return <DiagramEditor key={diagram.id} diagram={diagram} project={tree.project} me={me} />;
+  return <DiagramEditor key={`${diagram.id}:${diagram.generation}`} diagram={diagram} project={tree.project} me={me} />;
 }

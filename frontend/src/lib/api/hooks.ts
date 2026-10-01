@@ -2,8 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
+import { clearLocalCopies } from "@/editor/collab/local-copy";
+
 import { api, ApiError } from "./client";
 import type {
+  DiagramVersion,
   Access,
   Diagram,
   DiagramMeta,
@@ -109,6 +112,7 @@ export function useLogout() {
     onSuccess: () => {
       qc.clear();
       qc.setQueryData(keys.me, null);
+      void clearLocalCopies();
     },
   });
 }
@@ -382,6 +386,33 @@ export function useDuplicateDiagram(projectId: string) {
 
 export function useEmptyTrash(projectId: string) {
   return useTreeMutation(projectId, () => api<void>(`/projects/${projectId}/trash`, { method: "DELETE" }));
+}
+
+export function useVersions(diagramId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["versions", diagramId],
+    queryFn: () => api<DiagramVersion[]>(`/diagrams/${diagramId}/versions`),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+export async function fetchVersionXml(diagramId: string, versionId: string): Promise<string> {
+  const res = await fetch(`/api/diagrams/${diagramId}/versions/${versionId}/xml`, { credentials: "same-origin" });
+  if (!res.ok) throw new ApiError(res.status, "version_not_found", null);
+  return res.text();
+}
+
+export function useRestoreVersion(diagramId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionId: string) =>
+      api<DiagramVersion>(`/diagrams/${diagramId}/versions/${versionId}/restore`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["versions", diagramId] });
+      qc.invalidateQueries({ queryKey: keys.diagram(diagramId) });
+    },
+  });
 }
 
 export function useDiagram(diagramId: string | undefined) {

@@ -13,8 +13,8 @@ $compose exec -T db dropdb -U coframe --if-exists coframe_restore_check
 $compose exec -T db createdb -U coframe coframe_restore_check
 $compose exec -T db pg_restore -U coframe -d coframe_restore_check --no-owner < "$latest"
 count() {
-  $compose exec -T db psql -U coframe -d "$1" -Atc "SELECT (SELECT count(*) FROM users), (SELECT count(*) FROM projects), (SELECT count(*) FROM diagrams), (SELECT count(*) FROM diagram_versions)"
+  $compose exec -T db psql -U coframe -d "$1" -Atc "SELECT string_agg(t || '=' || (xpath('/row/c/text()', query_to_xml('SELECT count(*) AS c FROM ' || t, false, true, '')))[1]::text, ' ' ORDER BY t) FROM unnest(ARRAY['users', 'workspaces', 'projects', 'folders', 'diagrams', 'diagram_versions']) AS t WHERE to_regclass(t) IS NOT NULL"
 }
-echo "live     users|projects|diagrams|versions: $(count coframe)"
-echo "restored users|projects|diagrams|versions: $(count coframe_restore_check)"
+echo "live:     $(count coframe)"
+echo "restored: $(count coframe_restore_check)"
 $compose exec -T db dropdb -U coframe coframe_restore_check

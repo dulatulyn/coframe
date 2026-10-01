@@ -76,7 +76,9 @@ export type DiagramMeta = {
   updatedBy: PublicUser | null;
 };
 
-export type Diagram = DiagramMeta & { access: Access };
+export type Diagram = DiagramMeta & { access: Access; generation: number };
+
+export type DiagramVersion = { id: string; createdAt: string; source: "auto" | "restore"; author: PublicUser | null };
 
 export type Tree = { project: Project; folders: Folder[]; diagrams: DiagramMeta[] };
 

@@ -25,7 +25,7 @@ export function JamChip({ code, className }: { code: string; className?: string 
   );
 }
 
-export type SaveState = "saved" | "saving" | "offline";
+export type SaveState = "saved" | "saving" | "offline" | "local";
 
 export function SaveStatus({ state }: { state: SaveState }) {
   if (state === "saving") {
@@ -39,6 +39,13 @@ export function SaveStatus({ state }: { state: SaveState }) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[13px] text-slate">
         <CloudOff className="size-3.5" /> Offline — changes will sync
+      </span>
+    );
+  }
+  if (state === "local") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[13px] text-slate" title="Changes are kept on this device and sync when the connection is back">
+        <CloudOff className="size-3.5" /> Offline · saved on this device
       </span>
     );
   }
