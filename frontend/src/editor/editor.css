@@ -259,3 +259,50 @@
   stroke-width: 3px;
   stroke-dasharray: 5 4;
 }
+
+.coframe-editor .bts-toggle-mode {
+  display: none !important;
+}
+
+.coframe-editor .bjs-container.simulation .djs-container {
+  box-shadow: inset 0 0 0 3px #30a46c;
+}
+
+.coframe-editor .bts-palette {
+  top: auto;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 25;
+}
+
+.coframe-editor .bts-palette.hidden {
+  display: none;
+}
+
+.coframe-editor .bts-palette .bts-entry {
+  margin-bottom: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+}
+
+.coframe-editor .bts-set-animation-speed {
+  bottom: 24px;
+  z-index: 25;
+}
+
+.coframe-editor .bts-notifications {
+  left: 50%;
+  bottom: 140px;
+  transform: translateX(-50%);
+  z-index: 25;
+}
+
+.coframe-editor .bts-log {
+  top: 84px;
+  bottom: 96px;
+  right: 16px;
+}

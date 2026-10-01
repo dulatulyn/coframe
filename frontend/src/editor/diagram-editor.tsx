@@ -38,6 +38,8 @@ import { SessionEndedOverlay } from "./ui/session-ended";
 import { ShortcutsDialog } from "./ui/shortcuts-dialog";
 import { SuggestPopover } from "./ui/suggest-popover";
 import { VersionHistoryDialog } from "./ui/version-history";
+import type { ViewMode } from "./views/modes";
+import { ViewBanner } from "./views/view-banner";
 
 type Element = any;
 
@@ -69,6 +71,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [suggestFor, setSuggestFor] = useState<string | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [view, setView] = useState<ViewMode>("edit");
   const [aiChange, setAiChange] = useState<AiChange | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(false);
@@ -142,6 +145,10 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         setCommandOpen(false);
         setSuggestFor(element.id);
       };
+      const onSimulationToggle = ({ active }: { active: boolean }) =>
+        setView((current) => (active ? "simulate" : current === "simulate" ? "edit" : current));
+      eventBus.on("tokenSimulation.toggleMode", onSimulationToggle);
+      offs.push(() => eventBus.off("tokenSimulation.toggleMode", onSimulationToggle));
       const onAiApplied = (change: AiChange) => setAiChange(change.added.length || change.changed.length ? change : null);
       eventBus.on(SUGGEST_EVENT, onSuggest);
       eventBus.on(AI_APPLIED_EVENT, onAiApplied);
@@ -181,6 +188,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
       setSelection([]);
       setAiChange(null);
       setCommandOpen(false);
+      setView("edit");
     };
   }, [diagram.id, readOnly]);
 
@@ -201,6 +209,26 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   }, []);
 
   const clearAiChange = useCallback(() => setAiChange(null), []);
+
+  useEffect(() => {
+    if (!editor || !hasService(editor, "toggleMode")) return;
+    const toggle = service(editor, "toggleMode");
+    if (toggle._active !== (view === "simulate")) toggle.toggleMode(view === "simulate");
+  }, [editor, view]);
+
+  useEffect(() => {
+    if (view === "edit") return;
+    setCommandOpen(false);
+    setSuggestFor(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || (e.target as HTMLElement).closest("input, textarea, [contenteditable=true]")) return;
+      setView("edit");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [view]);
+
+  const editing = view === "edit";
 
   const onCreate = (item: CatalogItem, event: MouseEvent | DragEvent) => editor && startCreate(editor, item, event);
   const onTool = (id: ToolId, event: MouseEvent) => editor && activateTool(editor, id, event);
@@ -256,16 +284,19 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         onMinimap={editor && hasService(editor, "minimap") ? () => setMinimapOpen(toggleMinimap(editor)) : undefined}
         onShortcuts={() => setShortcutsOpen(true)}
         assistantOpen={assistantOpen}
-        onAssistant={editor ? () => setAssistantOpen((open) => !open) : undefined}
+        onAssistant={editor && editing ? () => setAssistantOpen((open) => !open) : undefined}
+        view={view}
+        onView={editor ? setView : undefined}
       />
 
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-3 bottom-3 z-20 flex flex-col-reverse items-end gap-2 pr-[72px] transition-[padding] duration-200 sm:bottom-5 md:flex-row md:items-end md:justify-center",
+          "pointer-events-none absolute inset-x-3 bottom-3 z-20 flex flex-col-reverse items-end gap-2 pr-[72px] transition-[padding] duration-200 sm:bottom-5 md:flex-row md:items-end",
+          editing ? "md:justify-center" : "md:justify-end",
           filesBeside && "lg:pl-[316px]",
         )}
       >
-        {!readOnly && editor && (
+        {!readOnly && editor && editing && (
           <NotationDock
             activeTool={tool}
             onTool={onTool}
@@ -307,7 +338,8 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       </div>
 
-      {editor && assistantOpen && (
+      {editor && !editing && <ViewBanner mode={view} onExit={() => setView("edit")} />}
+      {editor && assistantOpen && editing && (
         <AssistantPanel
           editor={editor}
           diagramId={diagram.id}
@@ -322,7 +354,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && inspectable && inspector.open && !assistantOpen && (
+      {editor && editing && inspectable && inspector.open && !assistantOpen && (
         <EditorInspector
           key={selected.id}
           editor={editor}
@@ -335,7 +367,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && inspectable && !inspector.open && !assistantOpen && (
+      {editor && editing && inspectable && !inspector.open && !assistantOpen && (
         <button
           type="button"
           onClick={() => inspector.setOpen(true)}
@@ -369,7 +401,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       )}
 
-      {editor && !failed && !session?.ended && !suggestFor && (
+      {editor && editing && !failed && !session?.ended && !suggestFor && (
         <AiCommand
           editor={editor}
           diagramId={diagram.id}

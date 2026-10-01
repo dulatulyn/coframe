@@ -8,6 +8,7 @@ import {
   History,
   Image as ImageIcon,
   Keyboard,
+  LayoutPanelTop,
   Map as MapIcon,
   MoreHorizontal,
   PanelLeft,
@@ -40,6 +41,7 @@ import { useFilesPanel } from "@/lib/panels";
 import { cn } from "@/lib/utils";
 
 import type { Peer } from "../collab/presence";
+import { VIEWS, viewInfo, type ViewMode } from "../views/modes";
 import type { ExportFormat } from "../actions";
 
 export function EditorTopBar({
@@ -60,6 +62,8 @@ export function EditorTopBar({
   onShortcuts,
   assistantOpen,
   onAssistant,
+  view,
+  onView,
 }: {
   diagram: Diagram;
   project: Project;
@@ -78,6 +82,8 @@ export function EditorTopBar({
   onShortcuts?: () => void;
   assistantOpen?: boolean;
   onAssistant?: () => void;
+  view: ViewMode;
+  onView?: (mode: ViewMode) => void;
 }) {
   const { open: filesOpen, setOpen: setFilesOpen } = useFilesPanel();
   const [shareOpen, setShareOpen] = useState(false);
@@ -200,6 +206,33 @@ export function EditorTopBar({
             <JamChip code={project.activeJam.code} className="max-sm:[&>span:last-child]:hidden" />
           </button>
         )}
+        {onView && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Views"
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[14px] font-medium transition-colors sm:px-3",
+                  view !== "edit" ? "bg-ink text-paper hover:bg-ink/85" : "hover:bg-fog",
+                )}
+              >
+                <ViewIcon mode={view} /> <span className="max-lg:hidden">{view === "edit" ? "Views" : viewInfo(view).label}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              {VIEWS.map((v) => (
+                <DropdownMenuItem key={v.id} onSelect={() => onView(v.id)} className={cn(view === v.id && "bg-fog")}>
+                  <v.icon />
+                  <span className="flex flex-col">
+                    <span>{v.id === "edit" && readOnly ? "View" : v.label}</span>
+                    <span className="text-[12px] text-slate">{v.hint}</span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {onAssistant && (
           <button
             type="button"
@@ -298,4 +331,9 @@ export function EditorTopBar({
       <ShareDialog project={project} open={shareOpen} onOpenChange={setShareOpen} />
     </>
   );
+}
+
+function ViewIcon({ mode }: { mode: ViewMode }) {
+  const Icon = mode === "edit" ? LayoutPanelTop : viewInfo(mode).icon;
+  return <Icon className="size-4" />;
 }
