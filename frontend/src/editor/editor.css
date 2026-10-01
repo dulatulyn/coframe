@@ -1,0 +1,232 @@
+.coframe-editor .djs-container {
+  --bio-surface: #ffffff;
+  --bio-surface-overlay: #ffffff;
+  --bio-surface-subtle: #f3f3f4;
+  --bio-surface-medium: #efeff1;
+  --bio-surface-inverted: #101012;
+  --bio-text: #101012;
+  --bio-text-subtle: #52525b;
+  --bio-text-subtlest: #71717a;
+  --bio-border: #e7e7ea;
+  --bio-border-disabled: #efeff1;
+  --bio-primary: #2f6bff;
+  --bio-primary-surface: #eef3ff;
+  --bio-selected-surface: #f3f3f4;
+  --bio-focus: #2f6bff;
+  --bio-focus-surface: #ffffff;
+  --bio-canvas-accent: #2f6bff;
+  --bio-canvas-accent-subtle: #a9c1ff;
+  --bio-shadow: rgb(16 16 18 / 0.16);
+  --bio-shadow-subtle: rgb(16 16 18 / 0.08);
+  --bio-radius-sm: 10px;
+  --bio-radius-md: 12px;
+  --bio-radius-lg: 20px;
+
+  --canvas-fill-color: transparent;
+  --popup-font-family: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --search-font-family: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --hover-tooltip-font-family: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --popup-font-size: 14px;
+  --popup-header-font-weight: 600;
+  --popup-shadow-color: rgb(16 16 18 / 0.14);
+  --context-pad-entry-background-color: transparent;
+  --context-pad-entry-hover-background-color: #f3f3f4;
+}
+
+.coframe-editor .djs-palette {
+  display: none !important;
+}
+
+.coframe-editor pattern[id^="djs-grid-pattern"] circle {
+  fill: #c9cad0;
+}
+
+.coframe-editor .djs-context-pad {
+  width: auto;
+  max-width: 124px;
+}
+
+.coframe-editor .djs-context-pad.open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 5px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px rgb(16 16 18 / 0.06),
+    0 10px 30px -10px rgb(16 16 18 / 0.25);
+  pointer-events: all;
+}
+
+.coframe-editor .djs-context-pad .group {
+  display: contents;
+}
+
+.coframe-editor .djs-context-pad .entry {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  border-radius: 11px;
+  font-size: 20px;
+  color: #101012;
+  box-shadow: none;
+  transition: background-color 120ms ease;
+}
+
+.coframe-editor .djs-context-pad .entry:hover {
+  background: #f3f3f4;
+}
+
+.coframe-editor .djs-context-pad .entry img,
+.coframe-editor .djs-context-pad .entry svg {
+  width: 20px;
+  height: 20px;
+}
+
+.coframe-editor .djs-popup,
+.djs-popup {
+  border: 0;
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow:
+    0 0 0 1px rgb(16 16 18 / 0.05),
+    0 18px 44px -14px rgb(16 16 18 / 0.28);
+}
+
+.djs-popup .djs-popup-header {
+  padding: 8px 8px 4px;
+}
+
+.djs-popup .djs-popup-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717a;
+}
+
+.djs-popup .djs-popup-search {
+  margin: 4px 4px 6px;
+}
+
+.djs-popup .djs-popup-search input {
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f3f4;
+  padding-left: 36px;
+  font-family: var(--font-onest), system-ui, sans-serif;
+}
+
+.djs-popup .djs-popup-search input:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgb(47 107 255 / 0.25);
+}
+
+.djs-popup .djs-popup-search-icon {
+  left: 14px;
+}
+
+.djs-popup .djs-popup-body {
+  padding: 2px;
+}
+
+.djs-popup .djs-popup-body .entry {
+  border-radius: 12px;
+  padding: 8px 10px;
+  min-height: 36px;
+}
+
+.djs-popup .djs-popup-body .entry.selected {
+  background: #f3f3f4;
+}
+
+.djs-popup .djs-popup-group-name {
+  padding: 10px 10px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717a;
+  text-transform: none;
+}
+
+.djs-popup .djs-popup-header .entry {
+  border-radius: 10px;
+}
+
+.coframe-editor .djs-search-container {
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 1px rgb(16 16 18 / 0.05),
+    0 18px 44px -14px rgb(16 16 18 / 0.28);
+}
+
+.coframe-editor .djs-outline {
+  rx: 6px;
+}
+
+.coframe-editor .djs-element.selected .djs-outline {
+  stroke-width: 2px;
+}
+
+.coframe-editor .collab-selection {
+  fill: none;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  rx: 8px;
+}
+
+.coframe-editor .djs-minimap {
+  top: auto;
+  bottom: 76px;
+  right: 16px;
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgb(16 16 18 / 0.06),
+    0 10px 30px -12px rgb(16 16 18 / 0.25);
+}
+
+.coframe-editor .djs-minimap .toggle {
+  display: none;
+}
+
+.coframe-editor .collab-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  transition:
+    transform 90ms linear,
+    opacity 160ms ease;
+  will-change: transform;
+  z-index: 30;
+}
+
+.coframe-editor .collab-cursor-label {
+  margin: -4px 0 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 999px;
+  color: #fff;
+  font: 500 11px/16px var(--font-onest), system-ui, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+.coframe-editor .collab-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  pointer-events: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: #fff;
+  font: 500 11px/16px var(--font-onest), system-ui, sans-serif;
+  white-space: nowrap;
+  z-index: 29;
+}

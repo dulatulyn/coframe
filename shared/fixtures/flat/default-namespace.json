@@ -1,0 +1,124 @@
+{
+ "sid-defs": {
+  "@targetNamespace": "http://www.signavio.com",
+  "@xmlns": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "@xmlns:bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
+  "@xmlns:omgdc": "http://www.omg.org/spec/DD/20100524/DC",
+  "@xmlns:omgdi": "http://www.omg.org/spec/DD/20100524/DI",
+  "o": "a0",
+  "p": "",
+  "t": "definitions"
+ },
+ "sid-diagram": {
+  "o": "a1",
+  "p": "sid-defs",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "sid-flow-1": {
+  "@sourceRef": "sid-start",
+  "@targetRef": "sid-split",
+  "o": "a4",
+  "p": "sid-process",
+  "t": "sequenceFlow"
+ },
+ "sid-flow-1_gui": {
+  "#omgdi:waypoint": "<omgdi:waypoint x=\"120.0\" y=\"135.0\"/><omgdi:waypoint x=\"165.0\" y=\"135.0\"/>",
+  "@bpmnElement": "sid-flow-1",
+  "o": "a4",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "sid-flow-2": {
+  "@sourceRef": "sid-split",
+  "@targetRef": "sid-manual",
+  "o": "a5",
+  "p": "sid-process",
+  "t": "sequenceFlow"
+ },
+ "sid-flow-2_gui": {
+  "#omgdi:waypoint": "<omgdi:waypoint x=\"185.5\" y=\"115.0\"/><omgdi:waypoint x=\"185.5\" y=\"80.0\"/><omgdi:waypoint x=\"250.0\" y=\"80.0\"/>",
+  "@bpmnElement": "sid-flow-2",
+  "o": "a5",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "sid-flow-3": {
+  "@sourceRef": "sid-split",
+  "@targetRef": "sid-receive",
+  "o": "a6",
+  "p": "sid-process",
+  "t": "sequenceFlow"
+ },
+ "sid-flow-3_gui": {
+  "#omgdi:waypoint": "<omgdi:waypoint x=\"185.5\" y=\"155.0\"/><omgdi:waypoint x=\"185.5\" y=\"200.0\"/><omgdi:waypoint x=\"250.0\" y=\"200.0\"/>",
+  "@bpmnElement": "sid-flow-3",
+  "o": "a6",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "sid-manual": {
+  "@name": "Sign",
+  "o": "a2",
+  "p": "sid-process",
+  "t": "manualTask"
+ },
+ "sid-manual_gui": {
+  "#omgdc:Bounds": "<omgdc:Bounds height=\"80.0\" width=\"100.0\" x=\"250.0\" y=\"40.0\"/>",
+  "@bpmnElement": "sid-manual",
+  "o": "a2",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNShape"
+ },
+ "sid-plane": {
+  "@bpmnElement": "sid-process",
+  "o": "a0",
+  "p": "sid-diagram",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "sid-process": {
+  "@isExecutable": "false",
+  "o": "a0",
+  "p": "sid-defs",
+  "t": "process"
+ },
+ "sid-receive": {
+  "@instantiate": "false",
+  "@name": "Wait for fax",
+  "o": "a3",
+  "p": "sid-process",
+  "t": "receiveTask"
+ },
+ "sid-receive_gui": {
+  "#omgdc:Bounds": "<omgdc:Bounds height=\"80.0\" width=\"100.0\" x=\"250.0\" y=\"160.0\"/>",
+  "@bpmnElement": "sid-receive",
+  "o": "a3",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNShape"
+ },
+ "sid-split": {
+  "@gatewayDirection": "Diverging",
+  "o": "a1",
+  "p": "sid-process",
+  "t": "parallelGateway"
+ },
+ "sid-split_gui": {
+  "#omgdc:Bounds": "<omgdc:Bounds height=\"40.0\" width=\"40.0\" x=\"165.0\" y=\"115.0\"/>",
+  "@bpmnElement": "sid-split",
+  "o": "a1",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNShape"
+ },
+ "sid-start": {
+  "@name": "Start",
+  "o": "a0",
+  "p": "sid-process",
+  "t": "startEvent"
+ },
+ "sid-start_gui": {
+  "#omgdc:Bounds": "<omgdc:Bounds height=\"30.0\" width=\"30.0\" x=\"90.0\" y=\"120.0\"/>",
+  "@bpmnElement": "sid-start",
+  "o": "a0",
+  "p": "sid-plane",
+  "t": "bpmndi:BPMNShape"
+ }
+}

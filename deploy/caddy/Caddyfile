@@ -1,0 +1,15 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:8100
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+http://{$PUBLIC_IP} {
+	redir https://{$DOMAIN}{uri} permanent
+}

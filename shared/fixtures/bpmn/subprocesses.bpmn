@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_0sub1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_sub" isExecutable="false">
+    <bpmn:startEvent id="Start_1">
+      <bpmn:outgoing>Flow_a</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:subProcess id="Sub_collapsed" name="Prepare shipment">
+      <bpmn:incoming>Flow_a</bpmn:incoming>
+      <bpmn:outgoing>Flow_b</bpmn:outgoing>
+      <bpmn:startEvent id="Sub_collapsed_start">
+        <bpmn:outgoing>Flow_inner</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="Sub_collapsed_task" name="Pack">
+        <bpmn:incoming>Flow_inner</bpmn:incoming>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_inner" sourceRef="Sub_collapsed_start" targetRef="Sub_collapsed_task" />
+    </bpmn:subProcess>
+    <bpmn:subProcess id="Sub_expanded" name="Ship">
+      <bpmn:incoming>Flow_b</bpmn:incoming>
+      <bpmn:outgoing>Flow_c</bpmn:outgoing>
+      <bpmn:standardLoopCharacteristics />
+      <bpmn:scriptTask id="Script_1" name="Label" scriptFormat="javascript">
+        <bpmn:script>var x = 1 &lt; 2 &amp;&amp; true;</bpmn:script>
+      </bpmn:scriptTask>
+      <bpmn:subProcess id="EventSub_1" name="On cancel" triggeredByEvent="true">
+        <bpmn:startEvent id="EventSub_start" name="Cancel requested" isInterrupting="false">
+          <bpmn:signalEventDefinition id="SignalEventDefinition_1" signalRef="Signal_cancel" />
+        </bpmn:startEvent>
+      </bpmn:subProcess>
+    </bpmn:subProcess>
+    <bpmn:transaction id="Tx_1" name="Charge card">
+      <bpmn:incoming>Flow_c</bpmn:incoming>
+      <bpmn:outgoing>Flow_d</bpmn:outgoing>
+    </bpmn:transaction>
+    <bpmn:callActivity id="Call_1" name="Notify" calledElement="notify-process">
+      <bpmn:incoming>Flow_d</bpmn:incoming>
+      <bpmn:outgoing>Flow_e</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics />
+    </bpmn:callActivity>
+    <bpmn:adHocSubProcess id="AdHoc_1" name="Follow up">
+      <bpmn:incoming>Flow_e</bpmn:incoming>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_a" sourceRef="Start_1" targetRef="Sub_collapsed" />
+    <bpmn:sequenceFlow id="Flow_b" sourceRef="Sub_collapsed" targetRef="Sub_expanded" />
+    <bpmn:sequenceFlow id="Flow_c" sourceRef="Sub_expanded" targetRef="Tx_1" />
+    <bpmn:sequenceFlow id="Flow_d" sourceRef="Tx_1" targetRef="Call_1" />
+    <bpmn:sequenceFlow id="Flow_e" sourceRef="Call_1" targetRef="AdHoc_1" />
+  </bpmn:process>
+  <bpmn:signal id="Signal_cancel" name="Cancel" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_main">
+    <bpmndi:BPMNPlane id="BPMNPlane_main" bpmnElement="Process_sub">
+      <bpmndi:BPMNShape id="Start_1_di" bpmnElement="Start_1">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sub_collapsed_di" bpmnElement="Sub_collapsed">
+        <dc:Bounds x="240" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sub_expanded_di" bpmnElement="Sub_expanded" isExpanded="true">
+        <dc:Bounds x="400" y="80" width="420" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Script_1_di" bpmnElement="Script_1">
+        <dc:Bounds x="440" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EventSub_1_di" bpmnElement="EventSub_1" isExpanded="true">
+        <dc:Bounds x="580" y="120" width="200" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EventSub_start_di" bpmnElement="EventSub_start">
+        <dc:Bounds x="620" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="596" y="225" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Tx_1_di" bpmnElement="Tx_1" isExpanded="false">
+        <dc:Bounds x="880" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Call_1_di" bpmnElement="Call_1">
+        <dc:Bounds x="1040" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AdHoc_1_di" bpmnElement="AdHoc_1" isExpanded="false">
+        <dc:Bounds x="1200" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_a_di" bpmnElement="Flow_a">
+        <di:waypoint x="188" y="200" />
+        <di:waypoint x="240" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_b_di" bpmnElement="Flow_b">
+        <di:waypoint x="340" y="200" />
+        <di:waypoint x="400" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_c_di" bpmnElement="Flow_c">
+        <di:waypoint x="820" y="200" />
+        <di:waypoint x="880" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_d_di" bpmnElement="Flow_d">
+        <di:waypoint x="980" y="200" />
+        <di:waypoint x="1040" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_e_di" bpmnElement="Flow_e">
+        <di:waypoint x="1140" y="200" />
+        <di:waypoint x="1200" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_sub">
+    <bpmndi:BPMNPlane id="BPMNPlane_sub" bpmnElement="Sub_collapsed">
+      <bpmndi:BPMNShape id="Sub_collapsed_start_di" bpmnElement="Sub_collapsed_start">
+        <dc:Bounds x="180" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sub_collapsed_task_di" bpmnElement="Sub_collapsed_task">
+        <dc:Bounds x="270" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_inner_di" bpmnElement="Flow_inner">
+        <di:waypoint x="216" y="178" />
+        <di:waypoint x="270" y="178" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

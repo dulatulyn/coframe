@@ -1,0 +1,290 @@
+{
+ "AdHoc_1": {
+  "@name": "Follow up",
+  "o": "a5",
+  "p": "Process_sub",
+  "t": "bpmn:adHocSubProcess"
+ },
+ "AdHoc_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"1200\" y=\"160\"/>",
+  "@bpmnElement": "AdHoc_1",
+  "@isExpanded": "false",
+  "o": "a8",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "BPMNDiagram_main": {
+  "o": "a2",
+  "p": "Definitions_0sub1",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "BPMNDiagram_sub": {
+  "o": "a3",
+  "p": "Definitions_0sub1",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "BPMNPlane_main": {
+  "@bpmnElement": "Process_sub",
+  "o": "a0",
+  "p": "BPMNDiagram_main",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "BPMNPlane_sub": {
+  "@bpmnElement": "Sub_collapsed",
+  "o": "a0",
+  "p": "BPMNDiagram_sub",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "Call_1": {
+  "#bpmn:multiInstanceLoopCharacteristics": "<bpmn:multiInstanceLoopCharacteristics/>",
+  "@calledElement": "notify-process",
+  "@name": "Notify",
+  "o": "a4",
+  "p": "Process_sub",
+  "t": "bpmn:callActivity"
+ },
+ "Call_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"1040\" y=\"160\"/>",
+  "@bpmnElement": "Call_1",
+  "o": "a7",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Definitions_0sub1": {
+  "@targetNamespace": "http://bpmn.io/schema/bpmn",
+  "@xmlns:bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "@xmlns:bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
+  "@xmlns:dc": "http://www.omg.org/spec/DD/20100524/DC",
+  "@xmlns:di": "http://www.omg.org/spec/DD/20100524/DI",
+  "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+  "o": "a0",
+  "p": "",
+  "t": "bpmn:definitions"
+ },
+ "EventSub_1": {
+  "@name": "On cancel",
+  "@triggeredByEvent": "true",
+  "o": "a1",
+  "p": "Sub_expanded",
+  "t": "bpmn:subProcess"
+ },
+ "EventSub_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"160\" width=\"200\" x=\"580\" y=\"120\"/>",
+  "@bpmnElement": "EventSub_1",
+  "@isExpanded": "true",
+  "o": "a4",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "EventSub_start": {
+  "@isInterrupting": "false",
+  "@name": "Cancel requested",
+  "o": "a0",
+  "p": "EventSub_1",
+  "t": "bpmn:startEvent"
+ },
+ "EventSub_start_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"85\" x=\"596\" y=\"225\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"620\" y=\"182\"/>",
+  "@bpmnElement": "EventSub_start",
+  "o": "a5",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Flow_a": {
+  "@sourceRef": "Start_1",
+  "@targetRef": "Sub_collapsed",
+  "o": "a6",
+  "p": "Process_sub",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_a_di": {
+  "#di:waypoint": "<di:waypoint x=\"188\" y=\"200\"/><di:waypoint x=\"240\" y=\"200\"/>",
+  "@bpmnElement": "Flow_a",
+  "o": "a9",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_b": {
+  "@sourceRef": "Sub_collapsed",
+  "@targetRef": "Sub_expanded",
+  "o": "a7",
+  "p": "Process_sub",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_b_di": {
+  "#di:waypoint": "<di:waypoint x=\"340\" y=\"200\"/><di:waypoint x=\"400\" y=\"200\"/>",
+  "@bpmnElement": "Flow_b",
+  "o": "aA",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_c": {
+  "@sourceRef": "Sub_expanded",
+  "@targetRef": "Tx_1",
+  "o": "a8",
+  "p": "Process_sub",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_c_di": {
+  "#di:waypoint": "<di:waypoint x=\"820\" y=\"200\"/><di:waypoint x=\"880\" y=\"200\"/>",
+  "@bpmnElement": "Flow_c",
+  "o": "aB",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_d": {
+  "@sourceRef": "Tx_1",
+  "@targetRef": "Call_1",
+  "o": "a9",
+  "p": "Process_sub",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_d_di": {
+  "#di:waypoint": "<di:waypoint x=\"980\" y=\"200\"/><di:waypoint x=\"1040\" y=\"200\"/>",
+  "@bpmnElement": "Flow_d",
+  "o": "aC",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_e": {
+  "@sourceRef": "Call_1",
+  "@targetRef": "AdHoc_1",
+  "o": "aA",
+  "p": "Process_sub",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_e_di": {
+  "#di:waypoint": "<di:waypoint x=\"1140\" y=\"200\"/><di:waypoint x=\"1200\" y=\"200\"/>",
+  "@bpmnElement": "Flow_e",
+  "o": "aD",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_inner": {
+  "@sourceRef": "Sub_collapsed_start",
+  "@targetRef": "Sub_collapsed_task",
+  "o": "a2",
+  "p": "Sub_collapsed",
+  "t": "bpmn:sequenceFlow"
+ },
+ "Flow_inner_di": {
+  "#di:waypoint": "<di:waypoint x=\"216\" y=\"178\"/><di:waypoint x=\"270\" y=\"178\"/>",
+  "@bpmnElement": "Flow_inner",
+  "o": "a2",
+  "p": "BPMNPlane_sub",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Process_sub": {
+  "@isExecutable": "false",
+  "o": "a0",
+  "p": "Definitions_0sub1",
+  "t": "bpmn:process"
+ },
+ "Script_1": {
+  "#bpmn:script": "<bpmn:script>var x = 1 &lt; 2 &amp;&amp; true;</bpmn:script>",
+  "@name": "Label",
+  "@scriptFormat": "javascript",
+  "o": "a0",
+  "p": "Sub_expanded",
+  "t": "bpmn:scriptTask"
+ },
+ "Script_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"440\" y=\"160\"/>",
+  "@bpmnElement": "Script_1",
+  "o": "a3",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "SignalEventDefinition_1": {
+  "@signalRef": "Signal_cancel",
+  "o": "a0",
+  "p": "EventSub_start",
+  "t": "bpmn:signalEventDefinition"
+ },
+ "Signal_cancel": {
+  "@name": "Cancel",
+  "o": "a1",
+  "p": "Definitions_0sub1",
+  "t": "bpmn:signal"
+ },
+ "Start_1": {
+  "o": "a0",
+  "p": "Process_sub",
+  "t": "bpmn:startEvent"
+ },
+ "Start_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"152\" y=\"182\"/>",
+  "@bpmnElement": "Start_1",
+  "o": "a0",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Sub_collapsed": {
+  "@name": "Prepare shipment",
+  "o": "a1",
+  "p": "Process_sub",
+  "t": "bpmn:subProcess"
+ },
+ "Sub_collapsed_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"240\" y=\"160\"/>",
+  "@bpmnElement": "Sub_collapsed",
+  "o": "a1",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Sub_collapsed_start": {
+  "o": "a0",
+  "p": "Sub_collapsed",
+  "t": "bpmn:startEvent"
+ },
+ "Sub_collapsed_start_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"180\" y=\"160\"/>",
+  "@bpmnElement": "Sub_collapsed_start",
+  "o": "a0",
+  "p": "BPMNPlane_sub",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Sub_collapsed_task": {
+  "@name": "Pack",
+  "o": "a1",
+  "p": "Sub_collapsed",
+  "t": "bpmn:task"
+ },
+ "Sub_collapsed_task_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"270\" y=\"138\"/>",
+  "@bpmnElement": "Sub_collapsed_task",
+  "o": "a1",
+  "p": "BPMNPlane_sub",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Sub_expanded": {
+  "#bpmn:standardLoopCharacteristics": "<bpmn:standardLoopCharacteristics/>",
+  "@name": "Ship",
+  "o": "a2",
+  "p": "Process_sub",
+  "t": "bpmn:subProcess"
+ },
+ "Sub_expanded_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"260\" width=\"420\" x=\"400\" y=\"80\"/>",
+  "@bpmnElement": "Sub_expanded",
+  "@isExpanded": "true",
+  "o": "a2",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Tx_1": {
+  "@name": "Charge card",
+  "o": "a3",
+  "p": "Process_sub",
+  "t": "bpmn:transaction"
+ },
+ "Tx_1_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"880\" y=\"160\"/>",
+  "@bpmnElement": "Tx_1",
+  "@isExpanded": "false",
+  "o": "a6",
+  "p": "BPMNPlane_main",
+  "t": "bpmndi:BPMNShape"
+ }
+}

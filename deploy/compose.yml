@@ -1,0 +1,64 @@
+name: coframe
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coframe
+      POSTGRES_USER: coframe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coframe -d coframe"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    build: ../backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://coframe:${POSTGRES_PASSWORD}@db:5432/coframe
+      PUBLIC_APP_URL: https://${DOMAIN:?}
+      ALLOWED_ORIGINS: '["https://${DOMAIN}"]'
+      COOKIE_SECURE: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        API_URL: http://api:8100
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8100
+    depends_on:
+      - api
+
+  caddy:
+    build: ./caddy
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      PUBLIC_IP: ${PUBLIC_IP:-127.0.0.1}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  db:
+  caddy_data:
+  caddy_config:

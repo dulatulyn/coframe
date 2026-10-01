@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exported by another modeler: bpmn2 prefix, camunda extensions, pretty-printed -->
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                   id="Definitions_ext"
+                   targetNamespace="http://example.com/bpmn">
+  <bpmn2:process id="Process_ext" name="Approval" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn2:startEvent id="Start_ext" name="Request&#9;submitted">
+      <bpmn2:outgoing>Flow_ext_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:serviceTask id="Service_ext" name="Score request" camunda:type="external" camunda:topic="scoring">
+      <bpmn2:documentation><![CDATA[Calls the <scoring> service & stores the result.]]></bpmn2:documentation>
+      <bpmn2:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="amount">${amount}</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn2:extensionElements>
+      <bpmn2:incoming>Flow_ext_1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_ext_2</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:businessRuleTask id="Rule_ext" name="Decide" camunda:decisionRef="approval">
+      <bpmn2:incoming>Flow_ext_2</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_ext_3</bpmn2:outgoing>
+    </bpmn2:businessRuleTask>
+    <bpmn2:intermediateThrowEvent id="Throw_ext" name="Notify">
+      <bpmn2:incoming>Flow_ext_3</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_ext_4</bpmn2:outgoing>
+      <bpmn2:linkEventDefinition id="Link_ext" name="toEnd" />
+    </bpmn2:intermediateThrowEvent>
+    <bpmn2:endEvent id="End_ext">
+      <bpmn2:incoming>Flow_ext_4</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="Flow_ext_1" sourceRef="Start_ext" targetRef="Service_ext" />
+    <bpmn2:sequenceFlow id="Flow_ext_2" sourceRef="Service_ext" targetRef="Rule_ext" />
+    <bpmn2:sequenceFlow id="Flow_ext_3" sourceRef="Rule_ext" targetRef="Throw_ext" />
+    <bpmn2:sequenceFlow id="Flow_ext_4" sourceRef="Throw_ext" targetRef="End_ext" />
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ext">
+    <bpmndi:BPMNPlane id="BPMNPlane_ext" bpmnElement="Process_ext">
+      <bpmndi:BPMNShape id="Start_ext_di" bpmnElement="Start_ext">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Service_ext_di" bpmnElement="Service_ext">
+        <dc:Bounds x="190" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Rule_ext_di" bpmnElement="Rule_ext">
+        <dc:Bounds x="340" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Throw_ext_di" bpmnElement="Throw_ext">
+        <dc:Bounds x="492" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ext_di" bpmnElement="End_ext">
+        <dc:Bounds x="582" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ext_1_di" bpmnElement="Flow_ext_1">
+        <di:waypoint x="136" y="118" />
+        <di:waypoint x="190" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ext_2_di" bpmnElement="Flow_ext_2">
+        <di:waypoint x="290" y="118" />
+        <di:waypoint x="340" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ext_3_di" bpmnElement="Flow_ext_3">
+        <di:waypoint x="440" y="118" />
+        <di:waypoint x="492" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ext_4_di" bpmnElement="Flow_ext_4">
+        <di:waypoint x="528" y="118" />
+        <di:waypoint x="582" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

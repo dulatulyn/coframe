@@ -1,0 +1,164 @@
+{
+ "BPMNDiagram_ext": {
+  "o": "a1",
+  "p": "Definitions_ext",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "BPMNPlane_ext": {
+  "@bpmnElement": "Process_ext",
+  "o": "a0",
+  "p": "BPMNDiagram_ext",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "Definitions_ext": {
+  "@targetNamespace": "http://example.com/bpmn",
+  "@xmlns:bpmn2": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "@xmlns:bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
+  "@xmlns:camunda": "http://camunda.org/schema/1.0/bpmn",
+  "@xmlns:dc": "http://www.omg.org/spec/DD/20100524/DC",
+  "@xmlns:di": "http://www.omg.org/spec/DD/20100524/DI",
+  "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+  "o": "a0",
+  "p": "",
+  "t": "bpmn2:definitions"
+ },
+ "End_ext": {
+  "o": "a4",
+  "p": "Process_ext",
+  "t": "bpmn2:endEvent"
+ },
+ "End_ext_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"582\" y=\"100\"/>",
+  "@bpmnElement": "End_ext",
+  "o": "a4",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Flow_ext_1": {
+  "@sourceRef": "Start_ext",
+  "@targetRef": "Service_ext",
+  "o": "a5",
+  "p": "Process_ext",
+  "t": "bpmn2:sequenceFlow"
+ },
+ "Flow_ext_1_di": {
+  "#di:waypoint": "<di:waypoint x=\"136\" y=\"118\"/><di:waypoint x=\"190\" y=\"118\"/>",
+  "@bpmnElement": "Flow_ext_1",
+  "o": "a5",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_ext_2": {
+  "@sourceRef": "Service_ext",
+  "@targetRef": "Rule_ext",
+  "o": "a6",
+  "p": "Process_ext",
+  "t": "bpmn2:sequenceFlow"
+ },
+ "Flow_ext_2_di": {
+  "#di:waypoint": "<di:waypoint x=\"290\" y=\"118\"/><di:waypoint x=\"340\" y=\"118\"/>",
+  "@bpmnElement": "Flow_ext_2",
+  "o": "a6",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_ext_3": {
+  "@sourceRef": "Rule_ext",
+  "@targetRef": "Throw_ext",
+  "o": "a7",
+  "p": "Process_ext",
+  "t": "bpmn2:sequenceFlow"
+ },
+ "Flow_ext_3_di": {
+  "#di:waypoint": "<di:waypoint x=\"440\" y=\"118\"/><di:waypoint x=\"492\" y=\"118\"/>",
+  "@bpmnElement": "Flow_ext_3",
+  "o": "a7",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Flow_ext_4": {
+  "@sourceRef": "Throw_ext",
+  "@targetRef": "End_ext",
+  "o": "a8",
+  "p": "Process_ext",
+  "t": "bpmn2:sequenceFlow"
+ },
+ "Flow_ext_4_di": {
+  "#di:waypoint": "<di:waypoint x=\"528\" y=\"118\"/><di:waypoint x=\"582\" y=\"118\"/>",
+  "@bpmnElement": "Flow_ext_4",
+  "o": "a8",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Link_ext": {
+  "@name": "toEnd",
+  "o": "a0",
+  "p": "Throw_ext",
+  "t": "bpmn2:linkEventDefinition"
+ },
+ "Process_ext": {
+  "@camunda:historyTimeToLive": "180",
+  "@isExecutable": "true",
+  "@name": "Approval",
+  "o": "a0",
+  "p": "Definitions_ext",
+  "t": "bpmn2:process"
+ },
+ "Rule_ext": {
+  "@camunda:decisionRef": "approval",
+  "@name": "Decide",
+  "o": "a2",
+  "p": "Process_ext",
+  "t": "bpmn2:businessRuleTask"
+ },
+ "Rule_ext_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"340\" y=\"78\"/>",
+  "@bpmnElement": "Rule_ext",
+  "o": "a2",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Service_ext": {
+  "#bpmn2:documentation": "<bpmn2:documentation>Calls the &lt;scoring&gt; service &amp; stores the result.</bpmn2:documentation>",
+  "#bpmn2:extensionElements": "<bpmn2:extensionElements><camunda:inputOutput><camunda:inputParameter name=\"amount\">${amount}</camunda:inputParameter></camunda:inputOutput></bpmn2:extensionElements>",
+  "@camunda:topic": "scoring",
+  "@camunda:type": "external",
+  "@name": "Score request",
+  "o": "a1",
+  "p": "Process_ext",
+  "t": "bpmn2:serviceTask"
+ },
+ "Service_ext_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"190\" y=\"78\"/>",
+  "@bpmnElement": "Service_ext",
+  "o": "a1",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Start_ext": {
+  "@name": "Request\tsubmitted",
+  "o": "a0",
+  "p": "Process_ext",
+  "t": "bpmn2:startEvent"
+ },
+ "Start_ext_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"100\" y=\"100\"/>",
+  "@bpmnElement": "Start_ext",
+  "o": "a0",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Throw_ext": {
+  "@name": "Notify",
+  "o": "a3",
+  "p": "Process_ext",
+  "t": "bpmn2:intermediateThrowEvent"
+ },
+ "Throw_ext_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"492\" y=\"100\"/>",
+  "@bpmnElement": "Throw_ext",
+  "o": "a3",
+  "p": "BPMNPlane_ext",
+  "t": "bpmndi:BPMNShape"
+ }
+}
