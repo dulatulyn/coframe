@@ -109,7 +109,9 @@ class AttachOp(BaseModel):
     op: Literal["attach"]
     ref: NewRef
     host: Id = Field(description="The activity the boundary event sits on.")
-    event: str = Field(description="Trigger: timer, error, message, escalation, signal, conditional, compensate.")
+    event: str = Field(
+        description="Trigger: timer, error, message, escalation, signal, conditional, compensate."
+    )
     name: str
     interrupting: bool = Field(
         description="false keeps the activity running (e.g. a reminder); true cancels it (e.g. a deadline)."
