@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, diagrams, folders, invites, jams, me, oauth, projects, versions, workspaces
+from app.api import ai, auth, diagrams, folders, invites, jams, me, oauth, projects, versions, workspaces
 from app.config import settings
 from app.db import SessionLocal
 from app.realtime import routes as realtime_routes
@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, bool]:
         return {"ok": True}
 
-    for module in (auth, oauth, workspaces, invites, projects, folders, diagrams, versions, jams, me):
+    for module in (auth, oauth, workspaces, invites, projects, folders, diagrams, versions, jams, me, ai):
         api.include_router(module.router)
     api.include_router(realtime_routes.router)
     app.include_router(api)
