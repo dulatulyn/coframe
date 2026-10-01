@@ -30,9 +30,16 @@ ssh "${ssh_opts[@]}" "$target" '
   set -e
   cd ~/coframe
   test -f .env || { echo "~/coframe/.env is missing" >&2; exit 1; }
-  docker compose --env-file .env -f src/deploy/compose.yml up -d --build --remove-orphans
+  compose="docker compose --env-file .env -f src/deploy/compose.yml"
+  docker builder prune -af >/dev/null
+  for service in api web caddy; do
+    $compose build "$service"
+    docker builder prune -af >/dev/null
+  done
+  $compose up -d --remove-orphans
   docker image prune -f >/dev/null
-  docker compose --env-file .env -f src/deploy/compose.yml ps
+  $compose ps
+  df -h / | tail -1
 '
 
 if [ -n "$url" ]; then
