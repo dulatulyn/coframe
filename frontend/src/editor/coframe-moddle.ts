@@ -12,6 +12,7 @@ export const COFRAME_MODDLE = {
         { name: "duration", isAttr: true, type: "String" },
         { name: "cost", isAttr: true, type: "String" },
         { name: "raci", isAttr: true, type: "String" },
+        { name: "probability", isAttr: true, type: "String" },
       ],
     },
     {

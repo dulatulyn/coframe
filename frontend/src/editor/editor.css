@@ -344,3 +344,16 @@
   stroke: #3e63dd !important;
   stroke-width: 2.5px !important;
 }
+
+.coframe-metric-badge {
+  --heat: 0;
+  white-space: nowrap;
+  border-radius: 9999px;
+  padding: 1px 7px;
+  font: 500 11px/16px var(--font-sans, system-ui);
+  color: #3a2a00;
+  background: color-mix(in srgb, #f5a524 calc(15% + var(--heat) * 70%), #fffaf0);
+  border: 1px solid color-mix(in srgb, #f5a524 60%, transparent);
+  transform: translateX(4px);
+  pointer-events: none;
+}

@@ -11,7 +11,7 @@ export type Scenario = {
   id: string;
   pool: string | null;
   elements: string[];
-  decisions: { gateway: string; question: string; answer: string }[];
+  decisions: { gateway: string; question: string; answer: string; choice: string }[];
   ends: { id: string; name: string }[];
   steps: number;
   loops: boolean;
@@ -75,13 +75,14 @@ export function scenarios(nodes: Map<string, FlowNode>): Scenario[] {
         into.queue.push(flow.target);
       };
 
-      const alternatives: { label: string; apply: (s: State) => void }[] = [];
+      const alternatives: { label: string; choice: string; apply: (s: State) => void }[] = [];
       if (node.boundaries.length && node.outgoing.length) {
-        alternatives.push({ label: "completes", apply: (s) => node.outgoing.forEach((f) => enter(f, s)) });
+        alternatives.push({ label: "completes", choice: "", apply: (s) => node.outgoing.forEach((f) => enter(f, s)) });
         for (const boundary of node.boundaries) {
           const event = nodes.get(boundary.id);
           alternatives.push({
             label: event?.name || "boundary event",
+            choice: boundary.id,
             apply: (s) => {
               if (!boundary.interrupting) node.outgoing.forEach((f) => enter(f, s));
               s.queue.push(boundary.id);
@@ -92,6 +93,7 @@ export function scenarios(nodes: Map<string, FlowNode>): Scenario[] {
         for (const flow of node.outgoing) {
           alternatives.push({
             label: flow.name || nodes.get(flow.target)?.name || flow.target,
+            choice: flow.id,
             apply: (s) => enter(flow, s),
           });
         }
@@ -101,7 +103,7 @@ export function scenarios(nodes: Map<string, FlowNode>): Scenario[] {
         const question = node.name || node.id;
         for (const alternative of alternatives) {
           const branch = copy(state);
-          branch.decisions.push({ gateway: node.id, question, answer: alternative.label });
+          branch.decisions.push({ gateway: node.id, question, answer: alternative.label, choice: alternative.choice });
           alternative.apply(branch);
           run(branch, start);
           if (result.length >= MAX_SCENARIOS) return;
