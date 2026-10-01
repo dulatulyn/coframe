@@ -357,3 +357,21 @@
   transform: translateX(4px);
   pointer-events: none;
 }
+
+.coframe-comment-badge {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px 11px 11px 3px;
+  background: #3e63dd;
+  color: #fff;
+  font: 600 11px/1 var(--font-sans, system-ui);
+  box-shadow: 0 2px 6px rgb(16 16 18 / 0.2);
+  cursor: pointer;
+}
+
+.coframe-comment-badge:hover {
+  background: #3451c4;
+}

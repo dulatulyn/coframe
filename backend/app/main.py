@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import (
     ai,
     auth,
+    comments,
     diagrams,
     folders,
     invites,
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
         me,
         ai,
         public,
+        comments,
     ):
         api.include_router(module.router)
     api.include_router(realtime_routes.router)

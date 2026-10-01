@@ -78,6 +78,18 @@ export type DiagramMeta = {
 
 export type Diagram = DiagramMeta & { access: Access; generation: number; publicToken?: string | null };
 
+export type Comment = {
+  id: string;
+  parentId: string | null;
+  elementId: string | null;
+  author: PublicUser | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  resolvedBy: PublicUser | null;
+};
+
 export type PublicDiagram = { name: string; xml: string; projectName: string; contentUpdatedAt: string };
 
 export type DiagramVersion = { id: string; createdAt: string; source: "auto" | "restore"; author: PublicUser | null };

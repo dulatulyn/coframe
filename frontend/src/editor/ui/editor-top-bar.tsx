@@ -10,6 +10,7 @@ import {
   Keyboard,
   LayoutPanelTop,
   Map as MapIcon,
+  MessageSquare,
   MoreHorizontal,
   PanelLeft,
   Redo2,
@@ -64,6 +65,9 @@ export function EditorTopBar({
   onAssistant,
   view,
   onView,
+  commentsOpen,
+  commentCount = 0,
+  onComments,
 }: {
   diagram: Diagram;
   project: Project;
@@ -84,6 +88,9 @@ export function EditorTopBar({
   onAssistant?: () => void;
   view: ViewMode;
   onView?: (mode: ViewMode) => void;
+  commentsOpen?: boolean;
+  commentCount?: number;
+  onComments?: () => void;
 }) {
   const { open: filesOpen, setOpen: setFilesOpen } = useFilesPanel();
   const [shareOpen, setShareOpen] = useState(false);
@@ -232,6 +239,26 @@ export function EditorTopBar({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+        {onComments && (
+          <button
+            type="button"
+            aria-label="Comments"
+            aria-pressed={commentsOpen}
+            title="Comments"
+            onClick={onComments}
+            className={cn(
+              "relative grid size-9 place-items-center rounded-full transition-colors",
+              commentsOpen ? "bg-ink text-paper hover:bg-ink/85" : "hover:bg-fog",
+            )}
+          >
+            <MessageSquare className="size-[18px]" strokeWidth={1.75} />
+            {commentCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cobalt px-1 font-mono text-[10px] font-semibold text-paper">
+                {commentCount > 99 ? "99+" : commentCount}
+              </span>
+            )}
+          </button>
         )}
         {onAssistant && (
           <button

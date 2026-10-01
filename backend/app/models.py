@@ -230,3 +230,24 @@ Index("ix_diagram_versions_diagram_created", DiagramVersion.diagram_id, DiagramV
 Index("ix_ai_usage_created", AiUsage.created_at)
 Index("ix_ai_usage_user_created", AiUsage.user_id, AiUsage.created_at)
 Index("ix_folders_project_parent", Folder.project_id, Folder.parent_id)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+    __table_args__ = (Index("ix_comments_diagram_created", "diagram_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    diagram_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("diagrams.id", ondelete="CASCADE"))
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("comments.id", ondelete="CASCADE"), index=True
+    )
+    element_id: Mapped[str | None] = mapped_column(String(128))
+    author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(Timestamp)
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+    author: Mapped[User | None] = relationship(foreign_keys=[author_id], lazy="joined")
+    resolver: Mapped[User | None] = relationship(foreign_keys=[resolved_by], lazy="joined")

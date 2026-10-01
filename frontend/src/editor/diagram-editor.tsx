@@ -2,13 +2,13 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Keyboard, Map as MapIcon, SlidersHorizontal } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import type { CatalogItem } from "@/components/bpmn/catalog";
 import { NotationDock, type ToolId } from "@/components/editor-chrome/notation-dock";
 import { ZoomControl } from "@/components/editor-chrome/status";
-import { keys, uploadPreview } from "@/lib/api/hooks";
+import { keys, uploadPreview, useComments } from "@/lib/api/hooks";
 import type { Diagram, Project, User } from "@/lib/api/types";
 import { useFilesPanel, useInspectorPanel } from "@/lib/panels";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ import { PresenceController, type Peer } from "./collab/presence";
 import { DiagramSession } from "./collab/session";
 import { createEditor, hasService, service, type BpmnEditor } from "./modeler";
 import { AiChangeBar } from "./ui/ai-change-bar";
+import { CommentBadges, CommentsPanel, threadsOf } from "./ui/comments-panel";
 import { AiCommand } from "./ui/ai-command";
 import { AssistantPanel } from "./ui/assistant-panel";
 import { EditorInspector } from "./ui/editor-inspector";
@@ -76,6 +77,11 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [suggestFor, setSuggestFor] = useState<string | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [view, setView] = useState<ViewMode>("edit");
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [focusThread, setFocusThread] = useState<string | null>(null);
+  const comments = useComments(diagram.id);
+  const threads = useMemo(() => threadsOf(comments.data ?? []), [comments.data]);
+  const openThreads = threads.filter((t) => !t.root.resolvedAt).length;
   const [aiChange, setAiChange] = useState<AiChange | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(false);
@@ -213,6 +219,11 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   }, []);
 
   const clearAiChange = useCallback(() => setAiChange(null), []);
+  const openThread = useCallback((id: string) => {
+    setAssistantOpen(false);
+    setCommentsOpen(true);
+    setFocusThread(id);
+  }, []);
 
   useEffect(() => {
     if (!editor || !hasService(editor, "toggleMode")) return;
@@ -289,7 +300,25 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         onMinimap={editor && hasService(editor, "minimap") ? () => setMinimapOpen(toggleMinimap(editor)) : undefined}
         onShortcuts={() => setShortcutsOpen(true)}
         assistantOpen={assistantOpen}
-        onAssistant={editor && editing ? () => setAssistantOpen((open) => !open) : undefined}
+        onAssistant={
+          editor && editing
+            ? () => {
+                setCommentsOpen(false);
+                setAssistantOpen((open) => !open);
+              }
+            : undefined
+        }
+        commentsOpen={commentsOpen}
+        commentCount={openThreads}
+        onComments={
+          editor
+            ? () => {
+                setAssistantOpen(false);
+                setFocusThread(null);
+                setCommentsOpen((open) => !open);
+              }
+            : undefined
+        }
         view={view}
         onView={editor ? setView : undefined}
       />
@@ -364,7 +393,23 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && editing && inspectable && inspector.open && !assistantOpen && (
+      {editor && commentsOpen && view !== "present" && (
+        <CommentsPanel
+          editor={editor}
+          diagramId={diagram.id}
+          me={me}
+          canModerate={!readOnly}
+          selection={selection}
+          focusThread={focusThread}
+          onClose={() => setCommentsOpen(false)}
+          className={cn(
+            "absolute z-30 rounded-[24px] border border-hairline bg-paper shadow-float",
+            inspector.medium ? "bottom-24 right-4 top-20 w-[360px]" : "inset-x-3 bottom-3 h-[65dvh]",
+          )}
+        />
+      )}
+      {editor && view !== "present" && <CommentBadges editor={editor} threads={threads} onOpen={openThread} />}
+      {editor && editing && inspectable && inspector.open && !assistantOpen && !commentsOpen && (
         <EditorInspector
           key={selected.id}
           editor={editor}
@@ -377,7 +422,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && editing && inspectable && !inspector.open && !assistantOpen && (
+      {editor && editing && inspectable && !inspector.open && !assistantOpen && !commentsOpen && (
         <button
           type="button"
           onClick={() => inspector.setOpen(true)}

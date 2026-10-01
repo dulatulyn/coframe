@@ -13,6 +13,7 @@ import type {
   AiSuggestion,
   ChatTurn,
   CheckResult,
+  Comment,
   DiagramVersion,
   PublicDiagram,
   Access,
@@ -541,6 +542,34 @@ export function useAiSuggest(diagramId: string) {
       }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
+}
+
+export function useComments(diagramId: string) {
+  return useQuery({
+    queryKey: ["comments", diagramId],
+    queryFn: () => api<Comment[]>(`/diagrams/${diagramId}/comments`),
+  });
+}
+
+export function useCommentActions(diagramId: string) {
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ["comments", diagramId] });
+  return {
+    add: useMutation({
+      mutationFn: (body: { body: string; elementId?: string | null; parentId?: string | null }) =>
+        api<Comment>(`/diagrams/${diagramId}/comments`, { method: "POST", body }),
+      onSuccess: refresh,
+    }),
+    update: useMutation({
+      mutationFn: ({ id, ...body }: { id: string; body?: string; resolved?: boolean }) =>
+        api<Comment>(`/comments/${id}`, { method: "PATCH", body }),
+      onSuccess: refresh,
+    }),
+    remove: useMutation({
+      mutationFn: (id: string) => api<void>(`/comments/${id}`, { method: "DELETE" }),
+      onSuccess: refresh,
+    }),
+  };
 }
 
 export function usePublicLink(diagramId: string) {
