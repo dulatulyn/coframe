@@ -9,7 +9,7 @@ export function ViewPanel({ title, subtitle, children, className }: { title: str
     <aside
       className={cn(
         "absolute z-30 flex flex-col overflow-hidden rounded-[24px] border border-hairline bg-paper shadow-float",
-        "inset-x-3 bottom-3 max-h-[55dvh] md:inset-x-auto md:bottom-24 md:right-4 md:top-[140px] md:max-h-none md:w-[340px]",
+        "inset-x-3 bottom-3 max-h-[55dvh] md:inset-x-auto md:bottom-auto md:right-4 md:top-[140px] md:max-h-[calc(100%-236px)] md:w-[340px]",
         className,
       )}
     >

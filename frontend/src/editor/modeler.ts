@@ -7,6 +7,8 @@ import "bpmn-js-token-simulation/assets/css/bpmn-js-token-simulation.css";
 import "./editor.css";
 
 import type Modeler from "bpmn-js/lib/Modeler";
+
+import { COFRAME_MODDLE } from "./coframe-moddle";
 import type NavigatedViewer from "bpmn-js/lib/NavigatedViewer";
 
 export type BpmnEditor = Modeler | NavigatedViewer;
@@ -20,7 +22,12 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       import("diagram-js-grid"),
       import("bpmn-js-token-simulation/lib/viewer"),
     ]);
-    return new NavigatedViewer({ container, bpmnRenderer: renderer, additionalModules: [GridModule, SimulationModule] });
+    return new NavigatedViewer({
+      container,
+      bpmnRenderer: renderer,
+      additionalModules: [GridModule, SimulationModule],
+      moddleExtensions: { coframe: COFRAME_MODDLE },
+    });
   }
   const [{ default: Modeler }, { CreateAppendAnythingModule }, { default: GridModule }, { default: MinimapModule }, { default: ColorPickerModule }] =
     await Promise.all([
@@ -38,6 +45,7 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
     container,
     bpmnRenderer: renderer,
     minimap: { open: false },
+    moddleExtensions: { coframe: COFRAME_MODDLE },
     additionalModules: [
       CreateAppendAnythingModule,
       GridModule,
