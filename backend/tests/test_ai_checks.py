@@ -184,7 +184,7 @@ def test_unmatched_link_events_and_superfluous_gateway():
 
 
 def test_description_lists_every_element_and_connection():
-    xml = (FIXTURES / "lanes.bpmn").read_text() if (FIXTURES / "lanes.bpmn").exists() else bpmn(LINEAR)
+    xml = (FIXTURES / "order-to-cash.bpmn").read_text()
     graph = build_graph(xml)
     text = describe(graph, run_checks(graph))
     for node in graph.nodes.values():

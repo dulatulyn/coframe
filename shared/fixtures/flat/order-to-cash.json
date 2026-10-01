@@ -1,0 +1,436 @@
+{
+ "BPMNDiagram_mock": {
+  "o": "a2",
+  "p": "Definitions_mock",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "BPMNPlane_mock": {
+  "@bpmnElement": "Collaboration_mock",
+  "o": "a0",
+  "p": "BPMNDiagram_mock",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "Collaboration_mock": {
+  "o": "a0",
+  "p": "Definitions_mock",
+  "t": "bpmn:collaboration"
+ },
+ "DataInputAssociation_crm": {
+  "#bpmn:sourceRef": "<bpmn:sourceRef>Store_crm</bpmn:sourceRef>",
+  "#bpmn:targetRef": "<bpmn:targetRef>Property_crm</bpmn:targetRef>",
+  "o": "a1",
+  "p": "Task_check",
+  "t": "bpmn:dataInputAssociation"
+ },
+ "DataInputAssociation_crm_di": {
+  "#di:waypoint": "<di:waypoint x=\"370\" y=\"90\"/><di:waypoint x=\"370\" y=\"180\"/>",
+  "@bpmnElement": "DataInputAssociation_crm",
+  "o": "aK",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Definitions_mock": {
+  "@targetNamespace": "http://bpmn.io/schema/bpmn",
+  "@xmlns:bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "@xmlns:bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
+  "@xmlns:dc": "http://www.omg.org/spec/DD/20100524/DC",
+  "@xmlns:di": "http://www.omg.org/spec/DD/20100524/DI",
+  "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+  "o": "a0",
+  "p": "",
+  "t": "bpmn:definitions"
+ },
+ "End_overdue": {
+  "@name": "Payment overdue",
+  "o": "a9",
+  "p": "Process_o2c",
+  "t": "bpmn:endEvent"
+ },
+ "End_overdue_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"84\" x=\"930\" y=\"493\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"882\" y=\"482\"/>",
+  "@bpmnElement": "End_overdue",
+  "o": "aA",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "End_paid": {
+  "@name": "Order paid",
+  "o": "a8",
+  "p": "Process_o2c",
+  "t": "bpmn:endEvent"
+ },
+ "End_paid_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"54\" x=\"873\" y=\"455\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"882\" y=\"412\"/>",
+  "@bpmnElement": "End_paid",
+  "o": "a9",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "End_rejected": {
+  "@name": "Order rejected",
+  "o": "a4",
+  "p": "Process_o2c",
+  "t": "bpmn:endEvent"
+ },
+ "End_rejected_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"72\" x=\"594\" y=\"245\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"612\" y=\"202\"/>",
+  "@bpmnElement": "End_rejected",
+  "o": "a6",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "EscalationEventDefinition_overdue": {
+  "o": "a0",
+  "p": "End_overdue",
+  "t": "bpmn:escalationEventDefinition"
+ },
+ "F1": {
+  "@sourceRef": "Start_order",
+  "@targetRef": "Task_check",
+  "o": "aA",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F1_di": {
+  "#di:waypoint": "<di:waypoint x=\"268\" y=\"220\"/><di:waypoint x=\"320\" y=\"220\"/>",
+  "@bpmnElement": "F1",
+  "o": "aD",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F2": {
+  "@sourceRef": "Task_check",
+  "@targetRef": "Gateway_ok",
+  "o": "aB",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F2_di": {
+  "#di:waypoint": "<di:waypoint x=\"420\" y=\"220\"/><di:waypoint x=\"475\" y=\"220\"/>",
+  "@bpmnElement": "F2",
+  "o": "aE",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F3": {
+  "@sourceRef": "Task_invoice",
+  "@targetRef": "Task_payment",
+  "o": "aE",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F3_di": {
+  "#di:waypoint": "<di:waypoint x=\"660\" y=\"430\"/><di:waypoint x=\"720\" y=\"430\"/>",
+  "@bpmnElement": "F3",
+  "o": "aH",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F4": {
+  "@sourceRef": "Task_payment",
+  "@targetRef": "End_paid",
+  "o": "aF",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F4_di": {
+  "#di:waypoint": "<di:waypoint x=\"820\" y=\"430\"/><di:waypoint x=\"882\" y=\"430\"/>",
+  "@bpmnElement": "F4",
+  "o": "aI",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F5": {
+  "@sourceRef": "Timer_due",
+  "@targetRef": "End_overdue",
+  "o": "aG",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F5_di": {
+  "#di:waypoint": "<di:waypoint x=\"800\" y=\"488\"/><di:waypoint x=\"800\" y=\"500\"/><di:waypoint x=\"882\" y=\"500\"/>",
+  "@bpmnElement": "F5",
+  "o": "aJ",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F_no": {
+  "@name": "no",
+  "@sourceRef": "Gateway_ok",
+  "@targetRef": "End_rejected",
+  "o": "aD",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F_no_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"14\" x=\"562\" y=\"202\"/></bpmndi:BPMNLabel>",
+  "#di:waypoint": "<di:waypoint x=\"525\" y=\"220\"/><di:waypoint x=\"612\" y=\"220\"/>",
+  "@bpmnElement": "F_no",
+  "o": "aF",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "F_yes": {
+  "@name": "yes",
+  "@sourceRef": "Gateway_ok",
+  "@targetRef": "Task_invoice",
+  "o": "aC",
+  "p": "Process_o2c",
+  "t": "bpmn:sequenceFlow"
+ },
+ "F_yes_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"18\" x=\"506\" y=\"330\"/></bpmndi:BPMNLabel>",
+  "#di:waypoint": "<di:waypoint x=\"500\" y=\"245\"/><di:waypoint x=\"500\" y=\"430\"/><di:waypoint x=\"560\" y=\"430\"/>",
+  "@bpmnElement": "F_yes",
+  "o": "aG",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Gateway_ok": {
+  "@name": "Order OK?",
+  "o": "a3",
+  "p": "Process_o2c",
+  "t": "bpmn:exclusiveGateway"
+ },
+ "Gateway_ok_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"54\" x=\"473\" y=\"171\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"50\" width=\"50\" x=\"475\" y=\"195\"/>",
+  "@bpmnElement": "Gateway_ok",
+  "@isMarkerVisible": "true",
+  "o": "a5",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "LaneSet_o2c": {
+  "o": "a0",
+  "p": "Process_o2c",
+  "t": "bpmn:laneSet"
+ },
+ "Lane_finance": {
+  "@name": "Finance",
+  "o": "a1",
+  "p": "LaneSet_o2c",
+  "t": "bpmn:lane",
+  "~bpmn:flowNodeRef|End_overdue": "1",
+  "~bpmn:flowNodeRef|End_paid": "1",
+  "~bpmn:flowNodeRef|Task_invoice": "1",
+  "~bpmn:flowNodeRef|Task_payment": "1",
+  "~bpmn:flowNodeRef|Timer_due": "1"
+ },
+ "Lane_finance_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"220\" width=\"830\" x=\"190\" y=\"320\"/>",
+  "@bpmnElement": "Lane_finance",
+  "@isHorizontal": "true",
+  "o": "a2",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Lane_sales": {
+  "@name": "Sales",
+  "o": "a0",
+  "p": "LaneSet_o2c",
+  "t": "bpmn:lane",
+  "~bpmn:flowNodeRef|End_rejected": "1",
+  "~bpmn:flowNodeRef|Gateway_ok": "1",
+  "~bpmn:flowNodeRef|Start_order": "1",
+  "~bpmn:flowNodeRef|Task_check": "1"
+ },
+ "Lane_sales_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"200\" width=\"830\" x=\"190\" y=\"120\"/>",
+  "@bpmnElement": "Lane_sales",
+  "@isHorizontal": "true",
+  "o": "a1",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "MessageEventDefinition_order": {
+  "o": "a0",
+  "p": "Start_order",
+  "t": "bpmn:messageEventDefinition"
+ },
+ "Msg_invoice": {
+  "@name": "Invoice",
+  "@sourceRef": "Task_invoice",
+  "@targetRef": "Participant_customer",
+  "o": "a3",
+  "p": "Collaboration_mock",
+  "t": "bpmn:messageFlow"
+ },
+ "Msg_invoice_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"36\" x=\"616\" y=\"548\"/></bpmndi:BPMNLabel>",
+  "#di:waypoint": "<di:waypoint x=\"610\" y=\"470\"/><di:waypoint x=\"610\" y=\"600\"/>",
+  "@bpmnElement": "Msg_invoice",
+  "o": "aN",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Msg_order": {
+  "@name": "Order",
+  "@sourceRef": "Participant_customer",
+  "@targetRef": "Start_order",
+  "o": "a2",
+  "p": "Collaboration_mock",
+  "t": "bpmn:messageFlow"
+ },
+ "Msg_order_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"30\" x=\"256\" y=\"470\"/></bpmndi:BPMNLabel>",
+  "#di:waypoint": "<di:waypoint x=\"250\" y=\"600\"/><di:waypoint x=\"250\" y=\"238\"/>",
+  "@bpmnElement": "Msg_order",
+  "o": "aM",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Msg_payment": {
+  "@name": "Payment",
+  "@sourceRef": "Participant_customer",
+  "@targetRef": "Task_payment",
+  "o": "a4",
+  "p": "Collaboration_mock",
+  "t": "bpmn:messageFlow"
+ },
+ "Msg_payment_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"44\" x=\"746\" y=\"548\"/></bpmndi:BPMNLabel>",
+  "#di:waypoint": "<di:waypoint x=\"740\" y=\"600\"/><di:waypoint x=\"740\" y=\"470\"/>",
+  "@bpmnElement": "Msg_payment",
+  "o": "aO",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "Participant_customer": {
+  "@name": "Customer",
+  "o": "a1",
+  "p": "Collaboration_mock",
+  "t": "bpmn:participant"
+ },
+ "Participant_customer_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"60\" width=\"860\" x=\"160\" y=\"600\"/>",
+  "@bpmnElement": "Participant_customer",
+  "@isHorizontal": "true",
+  "o": "aL",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Participant_shop": {
+  "@name": "Online shop",
+  "@processRef": "Process_o2c",
+  "o": "a0",
+  "p": "Collaboration_mock",
+  "t": "bpmn:participant"
+ },
+ "Participant_shop_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"420\" width=\"860\" x=\"160\" y=\"120\"/>",
+  "@bpmnElement": "Participant_shop",
+  "@isHorizontal": "true",
+  "o": "a0",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Process_o2c": {
+  "@isExecutable": "false",
+  "o": "a1",
+  "p": "Definitions_mock",
+  "t": "bpmn:process"
+ },
+ "Property_crm": {
+  "@name": "__targetRef_placeholder",
+  "o": "a0",
+  "p": "Task_check",
+  "t": "bpmn:property"
+ },
+ "Start_order": {
+  "@name": "Order received",
+  "o": "a1",
+  "p": "Process_o2c",
+  "t": "bpmn:startEvent"
+ },
+ "Start_order_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"75\" x=\"213\" y=\"180\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"232\" y=\"202\"/>",
+  "@bpmnElement": "Start_order",
+  "o": "a3",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Store_crm": {
+  "@name": "CRM",
+  "o": "aH",
+  "p": "Process_o2c",
+  "t": "bpmn:dataStoreReference"
+ },
+ "Store_crm_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"24\" x=\"403\" y=\"58\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"50\" width=\"50\" x=\"345\" y=\"40\"/>",
+  "@bpmnElement": "Store_crm",
+  "o": "aC",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Task_check": {
+  "@name": "Check order",
+  "o": "a2",
+  "p": "Process_o2c",
+  "t": "bpmn:userTask"
+ },
+ "Task_check_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"320\" y=\"180\"/>",
+  "@bpmnElement": "Task_check",
+  "o": "a4",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Task_invoice": {
+  "@name": "Send invoice",
+  "o": "a5",
+  "p": "Process_o2c",
+  "t": "bpmn:sendTask"
+ },
+ "Task_invoice_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"560\" y=\"390\"/>",
+  "@bpmnElement": "Task_invoice",
+  "o": "a7",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Task_payment": {
+  "@name": "Receive payment",
+  "o": "a6",
+  "p": "Process_o2c",
+  "t": "bpmn:receiveTask"
+ },
+ "Task_payment_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"720\" y=\"390\"/>",
+  "@bpmnElement": "Task_payment",
+  "o": "a8",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ },
+ "TerminateEventDefinition_rejected": {
+  "o": "a0",
+  "p": "End_rejected",
+  "t": "bpmn:terminateEventDefinition"
+ },
+ "TimerEventDefinition_due": {
+  "#bpmn:timeDuration": "<bpmn:timeDuration xsi:type=\"bpmn:tFormalExpression\">P14D</bpmn:timeDuration>",
+  "o": "a0",
+  "p": "Timer_due",
+  "t": "bpmn:timerEventDefinition"
+ },
+ "Timer_due": {
+  "@attachedToRef": "Task_payment",
+  "@name": "14 days",
+  "o": "a7",
+  "p": "Process_o2c",
+  "t": "bpmn:boundaryEvent"
+ },
+ "Timer_due_di": {
+  "#bpmndi:BPMNLabel": "<bpmndi:BPMNLabel><dc:Bounds height=\"14\" width=\"38\" x=\"781\" y=\"508\"/></bpmndi:BPMNLabel>",
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"782\" y=\"452\"/>",
+  "@bpmnElement": "Timer_due",
+  "o": "aB",
+  "p": "BPMNPlane_mock",
+  "t": "bpmndi:BPMNShape"
+ }
+}

@@ -1,0 +1,218 @@
+{
+ "Check": {
+  "@name": "Check request",
+  "o": "a1",
+  "p": "Process_1",
+  "t": "bpmn:task"
+ },
+ "Check_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"240\" y=\"160\"/>",
+  "@bpmnElement": "Check",
+  "o": "a1",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Defs": {
+  "@targetNamespace": "http://bpmn.io/schema/bpmn",
+  "@xmlns:bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "@xmlns:bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
+  "@xmlns:dc": "http://www.omg.org/spec/DD/20100524/DC",
+  "@xmlns:di": "http://www.omg.org/spec/DD/20100524/DI",
+  "o": "a0",
+  "p": "",
+  "t": "bpmn:definitions"
+ },
+ "Diagram_1": {
+  "o": "a1",
+  "p": "Defs",
+  "t": "bpmndi:BPMNDiagram"
+ },
+ "End": {
+  "@name": "Request handled",
+  "o": "a6",
+  "p": "Process_1",
+  "t": "bpmn:endEvent"
+ },
+ "End_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"762\" y=\"182\"/>",
+  "@bpmnElement": "End",
+  "o": "a6",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Grant": {
+  "@name": "Grant access",
+  "o": "a3",
+  "p": "Process_1",
+  "t": "bpmn:task"
+ },
+ "Grant_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"500\" y=\"80\"/>",
+  "@bpmnElement": "Grant",
+  "o": "a3",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Join": {
+  "o": "a5",
+  "p": "Process_1",
+  "t": "bpmn:parallelGateway"
+ },
+ "Join_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"50\" width=\"50\" x=\"655\" y=\"175\"/>",
+  "@bpmnElement": "Join",
+  "o": "a5",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Ok": {
+  "@name": "Approved?",
+  "o": "a2",
+  "p": "Process_1",
+  "t": "bpmn:exclusiveGateway"
+ },
+ "Ok_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"50\" width=\"50\" x=\"395\" y=\"175\"/>",
+  "@bpmnElement": "Ok",
+  "@isMarkerVisible": "true",
+  "o": "a2",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Plane_1": {
+  "@bpmnElement": "Process_1",
+  "o": "a0",
+  "p": "Diagram_1",
+  "t": "bpmndi:BPMNPlane"
+ },
+ "Process_1": {
+  "@isExecutable": "false",
+  "o": "a0",
+  "p": "Defs",
+  "t": "bpmn:process"
+ },
+ "Reject": {
+  "@name": "Send rejection",
+  "o": "a4",
+  "p": "Process_1",
+  "t": "bpmn:task"
+ },
+ "Reject_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"80\" width=\"100\" x=\"500\" y=\"240\"/>",
+  "@bpmnElement": "Reject",
+  "o": "a4",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "Start": {
+  "@name": "Request received",
+  "o": "a0",
+  "p": "Process_1",
+  "t": "bpmn:startEvent"
+ },
+ "Start_di": {
+  "#dc:Bounds": "<dc:Bounds height=\"36\" width=\"36\" x=\"152\" y=\"182\"/>",
+  "@bpmnElement": "Start",
+  "o": "a0",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNShape"
+ },
+ "f1": {
+  "@sourceRef": "Start",
+  "@targetRef": "Check",
+  "o": "a7",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f1_di": {
+  "#di:waypoint": "<di:waypoint x=\"188\" y=\"200\"/><di:waypoint x=\"240\" y=\"200\"/>",
+  "@bpmnElement": "f1",
+  "o": "a7",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f2": {
+  "@sourceRef": "Check",
+  "@targetRef": "Ok",
+  "o": "a8",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f2_di": {
+  "#di:waypoint": "<di:waypoint x=\"340\" y=\"200\"/><di:waypoint x=\"395\" y=\"200\"/>",
+  "@bpmnElement": "f2",
+  "o": "a8",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f3": {
+  "@sourceRef": "Ok",
+  "@targetRef": "Grant",
+  "o": "a9",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f3_di": {
+  "#di:waypoint": "<di:waypoint x=\"420\" y=\"175\"/><di:waypoint x=\"420\" y=\"120\"/><di:waypoint x=\"500\" y=\"120\"/>",
+  "@bpmnElement": "f3",
+  "o": "a9",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f4": {
+  "@sourceRef": "Ok",
+  "@targetRef": "Reject",
+  "o": "aA",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f4_di": {
+  "#di:waypoint": "<di:waypoint x=\"420\" y=\"225\"/><di:waypoint x=\"420\" y=\"280\"/><di:waypoint x=\"500\" y=\"280\"/>",
+  "@bpmnElement": "f4",
+  "o": "aA",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f5": {
+  "@sourceRef": "Grant",
+  "@targetRef": "Join",
+  "o": "aB",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f5_di": {
+  "#di:waypoint": "<di:waypoint x=\"600\" y=\"120\"/><di:waypoint x=\"680\" y=\"120\"/><di:waypoint x=\"680\" y=\"175\"/>",
+  "@bpmnElement": "f5",
+  "o": "aB",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f6": {
+  "@sourceRef": "Reject",
+  "@targetRef": "Join",
+  "o": "aC",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f6_di": {
+  "#di:waypoint": "<di:waypoint x=\"600\" y=\"280\"/><di:waypoint x=\"680\" y=\"280\"/><di:waypoint x=\"680\" y=\"225\"/>",
+  "@bpmnElement": "f6",
+  "o": "aC",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ },
+ "f7": {
+  "@sourceRef": "Join",
+  "@targetRef": "End",
+  "o": "aD",
+  "p": "Process_1",
+  "t": "bpmn:sequenceFlow"
+ },
+ "f7_di": {
+  "#di:waypoint": "<di:waypoint x=\"705\" y=\"200\"/><di:waypoint x=\"762\" y=\"200\"/>",
+  "@bpmnElement": "f7",
+  "o": "aD",
+  "p": "Plane_1",
+  "t": "bpmndi:BPMNEdge"
+ }
+}
