@@ -8,13 +8,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api/client";
-import { useJoinJam, useMe, useStartGuest } from "@/lib/api/hooks";
+import { useAcceptInvite, useJoinJam, useMe, useStartGuest } from "@/lib/api/hooks";
 import type { Project, Workspace } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
 
-export function TryAsGuestButton({ children = "Try without an account", ...props }: ButtonProps) {
+export function TryAsGuestButton({ children = "Try without an account", next, ...props }: ButtonProps & { next?: string }) {
   const router = useRouter();
   const startGuest = useStartGuest();
   const [pending, setPending] = useState(false);
@@ -26,6 +26,10 @@ export function TryAsGuestButton({ children = "Try without an account", ...props
         setPending(true);
         try {
           await startGuest.mutateAsync();
+          if (next && next !== "/app") {
+            router.replace(next);
+            return;
+          }
           const [workspace] = await api<Workspace[]>("/workspaces");
           const project = await api<Project>(`/workspaces/${workspace.id}/projects`, {
             method: "POST",
@@ -63,6 +67,36 @@ export function JoinAsGuestButton({
           await startGuest.mutateAsync();
           const result = await join.mutateAsync(code);
           router.replace(`/p/${result.projectId}`);
+        } catch (error) {
+          onFailure?.(errorMessage(error));
+        }
+      }}
+      {...props}
+    >
+      {pending && <Loader2 className="animate-spin" />}
+      Continue as a guest
+    </Button>
+  );
+}
+
+export function AcceptInviteAsGuestButton({
+  token,
+  onFailure,
+  ...props
+}: ButtonProps & { token: string; onFailure?: (message: string) => void }) {
+  const router = useRouter();
+  const startGuest = useStartGuest();
+  const accept = useAcceptInvite();
+  const pending = startGuest.isPending || accept.isPending;
+  return (
+    <Button
+      variant="ghost"
+      disabled={pending}
+      onClick={async () => {
+        try {
+          await startGuest.mutateAsync();
+          const workspace = await accept.mutateAsync(token);
+          router.replace(`/w/${workspace.id}`);
         } catch (error) {
           onFailure?.(errorMessage(error));
         }

@@ -138,7 +138,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       </p>
       {!me && (
         <div className="mt-3 flex justify-center">
-          <TryAsGuestButton variant="ghost" size="sm" className="text-slate hover:text-ink">
+          <TryAsGuestButton
+            variant="ghost"
+            size="sm"
+            className="text-slate hover:text-ink"
+            next={params.get("next") ? next : undefined}
+          >
             Just looking? Continue as a guest
           </TryAsGuestButton>
         </div>

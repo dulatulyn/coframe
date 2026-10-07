@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Logo } from "@/components/app/logo";
+import { AcceptInviteAsGuestButton } from "@/components/app/guest";
 import { WorkspaceBadge } from "@/components/app/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/api/client";
@@ -74,6 +75,7 @@ export default function InvitePage() {
                   <Button asChild size="lg" variant="outline">
                     <Link href={`/login?next=${encodeURIComponent(next)}`}>I have an account</Link>
                   </Button>
+                  <AcceptInviteAsGuestButton token={token} onFailure={setFailure} />
                 </div>
               )}
             </>
