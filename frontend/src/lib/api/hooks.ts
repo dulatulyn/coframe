@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 
 import { clearLocalCopies } from "@/editor/collab/local-copy";
 
+import { track } from "@/lib/analytics";
+
 import { api, ApiError } from "./client";
 import type {
   AiCommandResult,
@@ -81,10 +83,17 @@ export function useProviders() {
   });
 }
 
+function tap<T>(event: string, params: Record<string, string | number | boolean> = {}) {
+  return (value: T) => {
+    track(event, params);
+    return value;
+  };
+}
+
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { email: string; password: string }) => api<User>("/auth/login", { method: "POST", body }),
+    mutationFn: (body: { email: string; password: string }) => api<User>("/auth/login", { method: "POST", body }).then(tap("login", { method: "email" })),
     onSuccess: (user) => {
       qc.clear();
       qc.setQueryData(keys.me, user);
@@ -96,7 +105,7 @@ export function useSignup() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: { email: string; password: string; name: string }) =>
-      api<User>("/auth/signup", { method: "POST", body }),
+      api<User>("/auth/signup", { method: "POST", body }).then(tap("sign_up", { method: "email" })),
     onSuccess: (user) => {
       qc.clear();
       qc.setQueryData(keys.me, user);
@@ -107,7 +116,7 @@ export function useSignup() {
 export function useStartGuest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api<User>("/auth/guest", { method: "POST" }),
+    mutationFn: () => api<User>("/auth/guest", { method: "POST" }).then(tap("guest_start")),
     onSuccess: (user) => {
       qc.setQueryData(keys.me, user);
       qc.invalidateQueries({ queryKey: keys.workspaces });
@@ -223,7 +232,7 @@ export function useInvites(workspaceId: string, enabled = true) {
 export function useCreateInvite(workspaceId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (role: Role) => api<Invite>(`/workspaces/${workspaceId}/invites`, { method: "POST", body: { role } }),
+    mutationFn: (role: Role) => api<Invite>(`/workspaces/${workspaceId}/invites`, { method: "POST", body: { role } }).then(tap("invite_create", { role })),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.invites(workspaceId) }),
   });
 }
@@ -247,7 +256,7 @@ export function useInvitePreview(token: string) {
 export function useAcceptInvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (token: string) => api<Workspace>(`/invites/${token}/accept`, { method: "POST" }),
+    mutationFn: (token: string) => api<Workspace>(`/invites/${token}/accept`, { method: "POST" }).then(tap("invite_accept")),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.workspaces }),
   });
 }
@@ -272,7 +281,7 @@ export function useProject(projectId: string | undefined) {
 export function useCreateProject(workspaceId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => api<Project>(`/workspaces/${workspaceId}/projects`, { method: "POST", body: { name } }),
+    mutationFn: (name: string) => api<Project>(`/workspaces/${workspaceId}/projects`, { method: "POST", body: { name } }).then(tap("project_create")),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.projects(workspaceId) });
       qc.invalidateQueries({ queryKey: keys.workspaces });
@@ -355,7 +364,9 @@ export function useRestoreFolder(projectId: string) {
 
 export function useCreateDiagram(projectId: string) {
   return useTreeMutation(projectId, (body: { name?: string; folderId?: string | null; xml?: string; kind?: "bpmn" | "dmn" }) =>
-    api<DiagramMeta>(`/projects/${projectId}/diagrams`, { method: "POST", body }),
+    api<DiagramMeta>(`/projects/${projectId}/diagrams`, { method: "POST", body }).then(
+      tap("diagram_create", { kind: body.kind ?? "bpmn", source: body.xml ? "import_or_ai" : "blank" }),
+    ),
   );
 }
 
@@ -417,7 +428,9 @@ export function useRestoreVersion(diagramId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (versionId: string) =>
-      api<DiagramVersion>(`/diagrams/${diagramId}/versions/${versionId}/restore`, { method: "POST" }),
+      api<DiagramVersion>(`/diagrams/${diagramId}/versions/${versionId}/restore`, { method: "POST" }).then(
+        tap("version_restore"),
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["versions", diagramId] });
       qc.invalidateQueries({ queryKey: keys.diagram(diagramId) });
@@ -455,7 +468,7 @@ function invalidateJam(qc: QueryClient, projectId: string) {
 export function useStartJam(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (access: Access) => api<Jam>(`/projects/${projectId}/jam`, { method: "POST", body: { access } }),
+    mutationFn: (access: Access) => api<Jam>(`/projects/${projectId}/jam`, { method: "POST", body: { access } }).then(tap("jam_start", { access })),
     onSuccess: () => invalidateJam(qc, projectId),
   });
 }
@@ -488,7 +501,9 @@ export function useJoinJam() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (code: string) =>
-      api<{ projectId: string; jam: Jam }>(`/jams/${encodeURIComponent(code)}/join`, { method: "POST" }),
+      api<{ projectId: string; jam: Jam }>(`/jams/${encodeURIComponent(code)}/join`, { method: "POST" }).then(
+        tap("jam_join"),
+      ),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.myJams }),
   });
 }
@@ -528,7 +543,7 @@ export function useAiReview(diagramId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (language: string) =>
-      api<AiReview>(`/diagrams/${diagramId}/ai/review`, { method: "POST", body: { language } }),
+      api<AiReview>(`/diagrams/${diagramId}/ai/review`, { method: "POST", body: { language } }).then(tap("ai_review")),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
 }
@@ -540,7 +555,7 @@ export function useAiSuggest(diagramId: string) {
       api<{ suggestions: AiSuggestion[] }>(`/diagrams/${diagramId}/ai/suggest`, {
         method: "POST",
         body: { elementId, language },
-      }),
+      }).then(tap("ai_suggest")),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
 }
@@ -565,7 +580,9 @@ export function useCommentActions(diagramId: string) {
   return {
     add: useMutation({
       mutationFn: (body: { body: string; elementId?: string | null; parentId?: string | null }) =>
-        api<Comment>(`/diagrams/${diagramId}/comments`, { method: "POST", body }),
+        api<Comment>(`/diagrams/${diagramId}/comments`, { method: "POST", body }).then(
+          tap("comment_create", { reply: !!body.parentId, on_element: !!body.elementId }),
+        ),
       onSuccess: refresh,
     }),
     update: useMutation({
@@ -585,7 +602,8 @@ export function usePublicLink(diagramId: string) {
   const refresh = () => qc.invalidateQueries({ queryKey: keys.diagram(diagramId) });
   return {
     enable: useMutation({
-      mutationFn: () => api<{ token: string }>(`/diagrams/${diagramId}/public-link`, { method: "PUT" }),
+      mutationFn: () =>
+        api<{ token: string }>(`/diagrams/${diagramId}/public-link`, { method: "PUT" }).then(tap("public_link_create")),
       onSuccess: refresh,
     }),
     disable: useMutation({
@@ -608,7 +626,13 @@ export function useAiCommand(diagramId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ messages, selection, language }: { messages: ChatTurn[]; selection: string[]; language: string }) =>
-      api<AiCommandResult>(`/diagrams/${diagramId}/ai/command`, { method: "POST", body: { messages, selection, language } }),
+      api<AiCommandResult>(`/diagrams/${diagramId}/ai/command`, {
+        method: "POST",
+        body: { messages, selection, language },
+      }).then((result) => {
+        track("ai_command", { applied: result.ops.length > 0, rejected: result.rejected, selection: selection.length });
+        return result;
+      }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
 }
@@ -617,7 +641,9 @@ export function useAiGenerate(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ description, language }: { description: string; language: string }) =>
-      api<AiGenerated>(`/projects/${projectId}/ai/generate`, { method: "POST", body: { description, language } }),
+      api<AiGenerated>(`/projects/${projectId}/ai/generate`, { method: "POST", body: { description, language } }).then(
+        tap("ai_generate"),
+      ),
     onSettled: () => qc.invalidateQueries({ queryKey: ["ai-status"] }),
   });
 }

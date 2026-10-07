@@ -1,17 +1,83 @@
 # Coframe
 
-A collaborative BPMN 2.0 modeler. Draw processes with the standard notation (rendered by
-[bpmn-js](https://bpmn.io)), keep them in projects with folders, and edit together in real time:
-start a **jam**, share a 6-character code or link, and everyone sees each other's cursors,
-selections and changes live.
+**Model business processes together.** Coframe is a free, real-time collaborative BPMN 2.0 and DMN
+modeler with an AI copilot that actually understands your diagram. It runs on
+[bpmn.io](https://bpmn.io) and adds everything a team needs around it: live co-editing, comments,
+version history, simulation, analysis views, public links and more.
 
-- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind 4, shadcn/ui, bpmn-js
-- **Backend:** FastAPI, SQLAlchemy 2 (async), Alembic, PostgreSQL
-- **Real time:** Yjs over WebSockets (`y-websocket` in the browser, a `pycrdt` server inside FastAPI)
+**Try it:** [coframe.run](https://coframe.run). No account needed to start a diagram.
+
+```
+   ○ ──▶ [ Check order ] ──▶ ◇ Order OK? ──yes──▶ [ Send invoice ] ──▶ ◎
+                               │
+                               └──no──▶ ● Order rejected
+          ↑ Aigerim is editing          ↑ Daniyar left a comment
+```
+
+## What you get
+
+### Draw together, live
+- **Real-time co-editing.** Everyone sees each other's cursors, selections and changes as they
+  happen. Built on CRDTs (Yjs), so offline edits merge cleanly when you reconnect.
+- **Jams.** Share a 6-character code or a link; guests can join without signing up.
+- **Comments.** Threads on any element or on the whole diagram, with replies and resolve. Badges
+  on the canvas show where the discussion is.
+- **Version history.** Snapshots while you work, one-click restore, and a visual diff: what was
+  added, changed, moved and removed since any version.
+
+### An AI copilot on the canvas
+- **Select and ask.** Pick elements (click, Shift, lasso) or press **⌘K**, then say what you want:
+  *"add error handling here"*, *"run these in parallel"*, *"if the order is rejected, email the
+  customer"*. The change lands on the diagram, highlighted, with **Keep / Undo**.
+- **Chat that edits.** Ask questions about the process or ask for changes in plain language.
+- **Review.** A full analysis with explanations, consequences and one-click fixes.
+- **Next step.** Autocomplete for processes: three suggestions for what comes next.
+- **Generate.** Describe a process in words and get a laid-out diagram.
+
+Every AI proposal is validated by code before you see it: it is simulated on a copy of the model,
+re-checked with exact BPMN rules, and dropped if it would break the process. Runaway or malformed
+model answers are detected while streaming and retried.
+
+### Exact checks, no AI needed
+About 25 structural rules run on every change: missing start or end events, unreachable and dead-end
+elements, endless loops, implicit splits and joins, deadlocks between exclusive splits and parallel
+joins, merges without synchronization, unlabeled decisions, misused message flows and more.
+
+### Views on the same diagram
+| View | What it shows |
+|---|---|
+| **Simulate** | Tokens flow through the process; you pick branches at decisions. |
+| **Paths** | Every scenario from start to end, highlighted on the canvas, with loops and dead ends flagged. |
+| **Roles** | A RACI matrix built from lanes, editable and exportable to CSV. |
+| **Time & cost** | Durations, costs and branch odds, an expected time and cost for the process, and a heatmap. |
+| **Present** | A full-screen, step-by-step walkthrough for meetings. |
+
+### More
+- **Decision tables (DMN 1.3)** with the full dmn-js editor (DRD, decision tables, literal and boxed
+  expressions). Business rule tasks link to their decision table.
+- **Process map.** Call activities link to other diagrams; the map shows how processes call each other.
+- **Sub-processes your way.** Expand one in place (the rest of the diagram makes room) or keep it on
+  its own page with a clear way back.
+- **Public links and embeds.** A view-only link anyone can open, plus an `<iframe>` for Notion,
+  Confluence or a website. Turn it off at any time.
+- **Export** to BPMN, SVG, PNG, JPEG and PDF, or copy as an image.
+
+## Under the hood
+
+| Layer | Stack |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind 4, shadcn/ui, bpmn-js 18, dmn-js 17 |
+| Backend | FastAPI, SQLAlchemy 2 (async), Alembic, PostgreSQL |
+| Real time | Yjs over WebSockets (`y-websocket` in the browser, a `pycrdt` server inside FastAPI) |
+| AI | Gemini (Pro for reviews and edits, Flash for suggestions) with structured output |
+| Hosting | Docker Compose on one VM behind Caddy (automatic HTTPS) |
+
+A BPMN diagram is stored as a flat map of XML elements inside a Yjs document, so concurrent edits
+to different elements merge without conflicts and the server can always rebuild valid BPMN XML.
 
 ## Run it locally
 
-Requirements: PostgreSQL 14+ running locally, [uv](https://docs.astral.sh/uv/), Node.js 22+.
+Requirements: PostgreSQL 14+, [uv](https://docs.astral.sh/uv/), Node.js 22+.
 
 ```bash
 make install   # backend (uv sync) + frontend (npm install)
@@ -19,10 +85,9 @@ make db        # create the coframe / coframe_test databases and run migrations
 make dev       # API on http://localhost:8100, web app on http://localhost:3100
 ```
 
-Open http://localhost:3100, create an account, create a project and start drawing.
-To try a jam, open **Share → Start jam** and join from a second browser profile with the code.
-
-Ports 3100 and 8100 are used so they don't collide with other local projects on 3000/8000.
+Open http://localhost:3100, start a diagram, and to try a jam open **Share → Jam session** and
+join from a second browser profile with the code. Ports 3100 and 8100 avoid clashes with other
+local projects.
 
 ### Configuration
 
@@ -35,39 +100,28 @@ Backend settings come from `backend/.env` (see `backend/.env.example`):
 | `PUBLIC_APP_URL` | `http://localhost:3100` | base URL used in links and OAuth redirects |
 | `COOKIE_SECURE` | `false` | set `true` behind HTTPS |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | — | enables "Continue with Google" |
+| `GEMINI_API_KEY` | — | enables the AI features (or use `GCP_PROJECT` with Application Default Credentials) |
+| `AI_MONTHLY_BUDGET_USD` | `80` | hard monthly cap on AI spending |
 
-**Google sign-in:** in Google Cloud Console create an OAuth client of type *Web application* and
-add the authorized redirect URI `http://localhost:3100/api/auth/google/callback`. Put the client id
-and secret into `backend/.env` and restart the API; the button appears on the login page.
+**Google sign-in:** create an OAuth client of type *Web application* in Google Cloud and add the
+redirect URI `http://localhost:3100/api/auth/google/callback` (and your production domain's
+equivalent).
+
+**AI:** set `GEMINI_API_KEY`, or `GCP_PROJECT` to use Vertex AI with Application Default
+Credentials. Models default to the newest Gemini Pro and Flash (`AI_MODEL_SMART`, `AI_MODEL_FAST`).
+AI is available to registered users only. Every request is recorded with its token counts and
+estimated price; once `AI_MONTHLY_BUDGET_USD` is reached all AI calls stop for the month, and daily
+per-user limits apply (`AI_DAILY_REVIEWS`, `AI_DAILY_MESSAGES`, `AI_DAILY_SUGGESTIONS`,
+`AI_DAILY_GENERATIONS`).
+
+**Analytics:** production builds load Google Tag Manager (`NEXT_PUBLIC_GTM_ID`) with Consent Mode v2:
+nothing is stored until a visitor allows it. Page views are sent as `coframe_page_view` with a page
+type and a path where ids and access tokens are replaced by placeholders, and product events
+(`sign_up`, `login`, `guest_start`, `diagram_create`, `jam_start`, `jam_join`, `ai_command`,
+`view_open`, `export`, …) go to the data layer. Diagram content is never sent.
 
 The frontend proxies `/api/*` to the API (`API_URL`, default `http://localhost:8100`) and opens
-WebSockets directly (`NEXT_PUBLIC_WS_URL`, default `ws://localhost:8100` in development). In
-production put both behind one domain (e.g. a reverse proxy sending `/api` to FastAPI).
-
-## Assistant
-
-The editor has an assistant panel (✦ Assistant in the top bar):
-
-- **Check** — exact rules computed from the model by code: missing start/end events, disconnected and
-  unreachable elements, dead ends, endless loops, implicit splits and joins, deadlocks between exclusive
-  splits and parallel joins, merges without synchronization, unlabeled decisions, event-based gateway
-  targets, message flows inside a pool, unmatched link events and more. Available to everyone.
-- **Review** — Gemini reads the whole model together with the exact findings, explains what matters and why,
-  and proposes fixes as editor operations. Every proposal is simulated on a copy of the model and checked
-  again; proposals that break the model are discarded, the rest show what they fix and what they leave.
-  A fix applies as one change (one undo step) and syncs to everyone in the diagram.
-- **Ask** — a chat about the diagram, grounded in its structure; mentioned elements are clickable.
-- **Next step** — the ✦ entry in an element's context pad suggests up to three continuations (Enter adds).
-- **Generate** — ✦ in the files panel drafts a new diagram from a description; the checks find problems,
-  the model corrects them (up to two rounds) and bpmn-auto-layout lays the result out.
-
-AI features are for registered users only. They run on Gemini through Google Cloud (Vertex AI / Agent
-Platform) with Application Default Credentials: locally after `gcloud auth application-default login`, on a
-Google Cloud VM through its service account (role *Vertex AI User*, access scope *cloud-platform*). Set
-`GCP_PROJECT` (and optionally `GCP_LOCATION`, `AI_MODEL_SMART`, `AI_MODEL_FAST`; `auto` picks the newest Gemini
-Pro / Flash). Spending is capped in code: every request is recorded with its token counts and estimated price,
-`AI_MONTHLY_BUDGET_USD` stops all AI calls for the rest of the month once reached, and daily per-user limits
-apply (`AI_DAILY_REVIEWS`, `AI_DAILY_MESSAGES`, `AI_DAILY_SUGGESTIONS`, `AI_DAILY_GENERATIONS`).
+WebSockets directly (`NEXT_PUBLIC_WS_URL`, default `ws://localhost:8100` in development).
 
 ## Tests
 
@@ -76,27 +130,20 @@ make test      # pytest (backend, real Postgres) + vitest (frontend)
 make lint
 ```
 
-## Scripts
+Useful scripts:
 
 ```bash
-node frontend/scripts/jam-bot.mjs <JAM-CODE> [--diagram <id>] [--steps 10] [--api http://localhost:8100]
-node frontend/scripts/check-bpmn.mjs <file.bpmn>
-node frontend/scripts/sync-soak.mjs [--clients 4] [--ops 80] [--api http://localhost:8100] [--restart-cmd "<cmd>"]
+node frontend/scripts/jam-bot.mjs <JAM-CODE>      # a bot that joins a jam and edits like a person
+node frontend/scripts/check-bpmn.mjs <file.bpmn>  # report import warnings of a BPMN file
+node frontend/scripts/sync-soak.mjs --clients 4   # concurrent random edits with offline periods, then check convergence
+cd backend && PYTHONPATH=. uv run python scripts/ai_eval.py English   # run the AI review on fixtures with known flaws
 ```
-
-`jam-bot.mjs` joins a live jam as "Jam Bot" and works on a diagram like a second person: it moves
-its pointer, selects shapes, appends tasks and types their names, so collaboration can be watched
-without a second browser. `check-bpmn.mjs` parses a BPMN file with bpmn-moddle and reports every
-import warning (unresolved references, unknown elements). `sync-soak.mjs` opens several
-collaborators on a fresh diagram, makes random concurrent edits with offline periods (optionally
-restarting the API halfway), then checks that everyone converged, a fresh client loads the same
-document and the saved XML imports without warnings.
 
 ## Deployment
 
-Production runs with Docker Compose on a single VM: PostgreSQL, the API, the Next.js server and
-Caddy, which terminates HTTPS (Let's Encrypt) and sends `/api/*` (including WebSockets) to FastAPI
-and everything else to Next.js.
+Production runs with Docker Compose on a single VM: PostgreSQL, the API, the Next.js server, a
+backup service and Caddy, which terminates HTTPS and sends `/api/*` (including WebSockets) to
+FastAPI and everything else to Next.js.
 
 ```
 deploy/compose.yml      services and volumes
@@ -115,29 +162,19 @@ scp deploy/production.env user@host:coframe/.env     # variables from deploy/.en
 DEPLOY_HOST=host DEPLOY_USER=user DEPLOY_URL=https://your.domain ./deploy/deploy.sh
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) lints, tests and builds every push and pull request;
-pushes to `main` are deployed with the same script. It needs the repository secrets
-`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` and the variable `DEPLOY_URL`.
-
-For Google sign-in in production add `https://your.domain/api/auth/google/callback` to the
-OAuth client's authorized redirect URIs.
+GitHub Actions (`.github/workflows/ci.yml`) lints, tests and builds every push and pull request, and
+deploys pushes to `main` with the same script. It needs the secrets `DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_SSH_KEY` and the variable `DEPLOY_URL`.
 
 ### Keeping data safe
 
-- **Every edit is saved continuously.** The server writes a diagram about a second after each
-  change and keeps writing while changes arrive. Browsers also keep a local copy (IndexedDB), so
-  work done offline or in a tab that lost its connection is sent once it reconnects.
-- **Version history.** Every diagram keeps snapshots of its content (about every ten minutes of
-  editing, when everyone leaves, and before a restore). Any version can be previewed, downloaded or
-  restored from the editor; restoring is itself undoable.
-- **Database backups.** The `backup` service dumps PostgreSQL every 6 hours into `~/coframe/backups`
-  on the VM and keeps the last 28 dumps (`BACKUP_EVERY` / `BACKUP_KEEP` in the env file).
-  `deploy/verify-backup.sh` (run on the VM) restores the newest dump into a scratch database and
-  compares row counts; `deploy/pull-backups.sh` copies the dumps to your machine.
-- **Off-site copies.** Add a snapshot schedule to the VM's disk in Google Cloud (Compute Engine →
-  Snapshots → Snapshot schedules) so a lost VM can be recreated.
-
-Restoring a dump on the VM:
+- **Every edit is saved continuously**, about a second after each change. Browsers also keep a local
+  copy (IndexedDB), so work done offline is sent once the connection is back.
+- **Version history** keeps snapshots of every diagram; any version can be previewed, compared,
+  downloaded or restored, and restoring is itself undoable.
+- **Database backups** run every 6 hours into `~/coframe/backups` on the VM (the last 28 are kept).
+  `deploy/verify-backup.sh` restores the newest dump into a scratch database and compares row counts.
+- **Off-site copies:** add a snapshot schedule to the VM's disk in your cloud console.
 
 ```bash
 cd ~/coframe
@@ -145,26 +182,24 @@ docker compose --env-file .env -f src/deploy/compose.yml exec -T db \
   pg_restore -U coframe -d coframe --clean --if-exists --no-owner < backups/coframe-<timestamp>.dump
 ```
 
-## Layout
+## Repository layout
 
 ```
 backend/            FastAPI app (app/), Alembic migrations, tests
   app/api/          REST endpoints
+  app/ai/           model graph, exact checks, operations, simulation, prompts, Gemini client
   app/realtime/     Yjs rooms (y-websocket protocol) and the project presence channel
-  app/bpmn/flat.py  BPMN XML <-> flat element map used for merging
 frontend/           Next.js app
-  src/editor/       bpmn-js editor, Yjs binding, live presence
-  src/components/   design system, editor chrome, project files, jam dialog
+  src/editor/       bpmn-js editor, Yjs binding, AI on the canvas, views, DMN editor
+  src/components/   design system, editor chrome, project files, sharing
 shared/fixtures/    BPMN files shared by the Python and TypeScript tests
 deploy/             Docker Compose stack, Caddy, deploy scripts
 docs/               BPMN notation reference, design, roadmap
 ```
 
-- BPMN notation reference: [`docs/bpmn/notation.md`](docs/bpmn/notation.md)
-- Design: [`docs/design.md`](docs/design.md)
-- Roadmap: [`docs/roadmap.md`](docs/roadmap.md)
+## Credits
 
-## License notes
-
-bpmn-js is used under the bpmn.io license, which requires its watermark to stay visible on the
-canvas. Coframe never hides or covers it.
+The diagram canvas is [bpmn-js](https://github.com/bpmn-io/bpmn-js) and the decision editor is
+[dmn-js](https://github.com/bpmn-io/dmn-js), both by bpmn.io and used under the bpmn.io license,
+which requires its watermark to stay visible. Coframe never hides or covers it. Token simulation
+comes from [bpmn-js-token-simulation](https://github.com/bpmn-io/bpmn-js-token-simulation).

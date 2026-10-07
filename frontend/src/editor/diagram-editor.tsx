@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { CatalogItem } from "@/components/bpmn/catalog";
 import { NotationDock, type ToolId } from "@/components/editor-chrome/notation-dock";
 import { ZoomControl } from "@/components/editor-chrome/status";
+import { track } from "@/lib/analytics";
 import { keys, uploadPreview, useComments } from "@/lib/api/hooks";
 import type { Diagram, Project, User } from "@/lib/api/types";
 import { useFilesPanel, useInspectorPanel } from "@/lib/panels";
@@ -234,6 +235,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
 
   useEffect(() => {
     if (view === "edit") return;
+    track("view_open", { view });
     setCommandOpen(false);
     setSuggestFor(null);
     const onKey = (e: KeyboardEvent) => {

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/api/client";
 import { TryAsGuestButton } from "@/components/app/guest";
 import { useLogin, useMe, useProviders, useSignup } from "@/lib/api/hooks";
+import { track } from "@/lib/analytics";
 import { safeNext } from "@/lib/next-url";
 
 const OAUTH_ERRORS: Record<string, string> = {
@@ -85,7 +86,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       {providers.data?.google && (
         <>
           <Button asChild variant="outline" size="lg" className="mt-8 w-full">
-            <a href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}>
+            <a
+              href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}
+              onClick={() => track(mode === "login" ? "login" : "sign_up", { method: "google" })}
+            >
               <GoogleMark />
               Continue with Google
             </a>

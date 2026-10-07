@@ -2,6 +2,7 @@ import { toast } from "sonner";
 
 import type { CatalogItem } from "@/components/bpmn/catalog";
 import type { ToolId } from "@/components/editor-chrome/notation-dock";
+import { track } from "@/lib/analytics";
 
 import { hasService, service, type BpmnEditor } from "./modeler";
 import { jpegToPdf } from "./pdf";
@@ -160,6 +161,7 @@ export async function copyXml(editor: BpmnEditor): Promise<void> {
 export type ExportFormat = "bpmn" | "svg" | "png" | "jpeg" | "pdf" | "copy-image" | "copy-xml";
 
 export async function runExport(editor: BpmnEditor, format: ExportFormat, name: string): Promise<void> {
+  track("export", { format });
   try {
     if (format === "bpmn") await exportBpmn(editor, name);
     else if (format === "svg") await exportSvg(editor, name);
