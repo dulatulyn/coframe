@@ -75,6 +75,7 @@ export type DiagramMeta = {
   pinnedAt: string | null;
   updatedBy: PublicUser | null;
   kind?: "bpmn" | "dmn";
+  ownerId?: string | null;
 };
 
 export type Diagram = DiagramMeta & { access: Access; generation: number; publicToken?: string | null };

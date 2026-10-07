@@ -363,7 +363,7 @@ export function useRestoreFolder(projectId: string) {
 }
 
 export function useCreateDiagram(projectId: string) {
-  return useTreeMutation(projectId, (body: { name?: string; folderId?: string | null; xml?: string; kind?: "bpmn" | "dmn" }) =>
+  return useTreeMutation(projectId, (body: { name?: string; folderId?: string | null; xml?: string; kind?: "bpmn" | "dmn"; ownerId?: string }) =>
     api<DiagramMeta>(`/projects/${projectId}/diagrams`, { method: "POST", body }).then(
       tap("diagram_create", { kind: body.kind ?? "bpmn", source: body.xml ? "import_or_ai" : "blank" }),
     ),

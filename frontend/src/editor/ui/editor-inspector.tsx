@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Copy, ExternalLink, X } from "lucide-react";
+import { ArrowLeftRight, Copy, ExternalLink, Plus, Table2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Glyph } from "@/components/bpmn/glyphs";
 import { useTree } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
+import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT } from "../dmn/link";
 import { service, type BpmnEditor } from "../modeler";
 import { isCollapsedSubProcess, isExpandedSubProcess, toggleSubProcess } from "../subprocess";
 import { COLORS, describe, isActivity } from "./element-info";
@@ -87,7 +88,7 @@ function LinkField({
           ))}
           {linked && !target && <option value={linked}>Missing diagram</option>}
         </select>
-        {target && (
+        {target && kind === "bpmn" && (
           <button
             type="button"
             onClick={() => router.push(`/p/${projectId}/${target.id}`)}
@@ -98,6 +99,29 @@ function LinkField({
           </button>
         )}
       </div>
+      {kind === "dmn" && (
+        <div className="mt-2 flex gap-2">
+          {target ? (
+            <button
+              type="button"
+              onClick={() => service(editor, "eventBus").fire(DECISION_OPEN_EVENT, { element })}
+              className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-ink text-[13px] font-medium text-paper hover:bg-ink/85"
+            >
+              <Table2 className="size-4" /> Open table
+            </button>
+          ) : (
+            !readOnly && (
+              <button
+                type="button"
+                onClick={() => service(editor, "eventBus").fire(DECISION_CREATE_EVENT, { element })}
+                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-soft text-[13px] font-medium hover:border-ink"
+              >
+                <Plus className="size-4" /> Create decision table
+              </button>
+            )
+          )}
+        </div>
+      )}
     </Field>
   );
 }

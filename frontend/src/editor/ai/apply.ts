@@ -109,7 +109,8 @@ class ApplyOpsHandler {
           const position = { x: source.x + source.width + 50 + shape.width / 2, y: source.y + source.height / 2 };
           const created = modeling.createShape(shape, position, source.parent);
           const incoming = modeling.connect(source, created, rules.canConnect(source, created));
-          modeling.connect(created, target, rules.canConnect(created, target));
+          const onward = modeling.connect(created, target, rules.canConnect(created, target));
+          if (op.label && onward) modeling.updateLabel(onward, op.label);
           if (label && incoming) modeling.updateLabel(incoming, label);
           if (wasDefault && incoming) modeling.updateProperties(source, { default: incoming.businessObject });
           if (op.name) modeling.updateLabel(created, op.name);

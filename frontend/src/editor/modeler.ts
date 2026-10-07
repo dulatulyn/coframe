@@ -37,12 +37,13 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       import("diagram-js-minimap"),
       import("bpmn-js-color-picker"),
     ]);
-  const [{ SuggestPadModule }, { default: SimulationModule }, { MenuIconsModule }, { SubProcessPadModule }] =
+  const [{ SuggestPadModule }, { default: SimulationModule }, { MenuIconsModule }, { SubProcessPadModule }, { DecisionPadModule }] =
     await Promise.all([
       import("./ai/suggest-pad"),
       import("bpmn-js-token-simulation/lib/modeler"),
       import("./menu-icons"),
       import("./subprocess"),
+      import("./dmn/decision-pad"),
     ]);
   return new Modeler({
     container,
@@ -58,6 +59,7 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       SimulationModule,
       MenuIconsModule,
       SubProcessPadModule,
+      DecisionPadModule,
     ],
   });
 }

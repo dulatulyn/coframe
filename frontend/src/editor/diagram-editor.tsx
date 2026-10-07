@@ -37,6 +37,7 @@ import { AssistantPanel } from "./ui/assistant-panel";
 import { EditorInspector } from "./ui/editor-inspector";
 import { EditorTopBar } from "./ui/editor-top-bar";
 import { PlaneBar } from "./ui/plane-bar";
+import { DecisionLayer } from "./dmn/decision-layer";
 import { SessionEndedOverlay } from "./ui/session-ended";
 import { ShortcutsDialog } from "./ui/shortcuts-dialog";
 import { SuggestPopover } from "./ui/suggest-popover";
@@ -80,6 +81,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
   const [commandOpen, setCommandOpen] = useState(false);
   const [view, setView] = useState<ViewMode>("edit");
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [decisionFor, setDecisionFor] = useState<string | null>(null);
   const [focusThread, setFocusThread] = useState<string | null>(null);
   const comments = useComments(diagram.id);
   const threads = useMemo(() => threadsOf(comments.data ?? []), [comments.data]);
@@ -307,6 +309,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           editor && editing
             ? () => {
                 setCommentsOpen(false);
+                setDecisionFor(null);
                 setAssistantOpen((open) => !open);
               }
             : undefined
@@ -317,6 +320,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           editor
             ? () => {
                 setAssistantOpen(false);
+                setDecisionFor(null);
                 setFocusThread(null);
                 setCommentsOpen((open) => !open);
               }
@@ -413,7 +417,27 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         />
       )}
       {editor && view !== "present" && <CommentBadges editor={editor} threads={threads} onOpen={openThread} />}
-      {editor && editing && inspectable && inspector.open && !assistantOpen && !commentsOpen && (
+      {editor && view !== "present" && (
+        <DecisionLayer
+          editor={editor}
+          diagram={diagram}
+          project={project}
+          readOnly={readOnly}
+          version={changeVersion}
+          openTask={decisionFor}
+          onOpen={(taskId) => {
+            setAssistantOpen(false);
+            setCommentsOpen(false);
+            setDecisionFor(taskId);
+          }}
+          onClose={() => setDecisionFor(null)}
+          panelClassName={cn(
+            "absolute z-30 rounded-[24px] border border-hairline bg-paper shadow-float",
+            inspector.medium ? "bottom-24 right-4 top-20 w-[min(780px,calc(100%-360px))]" : "inset-x-3 bottom-3 h-[75dvh]",
+          )}
+        />
+      )}
+      {editor && editing && inspectable && inspector.open && !assistantOpen && !commentsOpen && !decisionFor && (
         <EditorInspector
           key={selected.id}
           editor={editor}
@@ -428,7 +452,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           )}
         />
       )}
-      {editor && editing && inspectable && !inspector.open && !assistantOpen && !commentsOpen && (
+      {editor && editing && inspectable && !inspector.open && !assistantOpen && !commentsOpen && !decisionFor && (
         <button
           type="button"
           onClick={() => inspector.setOpen(true)}
@@ -462,7 +486,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       )}
 
-      {editor && editing && !failed && !session?.ended && !suggestFor && (
+      {editor && editing && !failed && !session?.ended && !suggestFor && !decisionFor && (
         <AiCommand
           editor={editor}
           diagramId={diagram.id}

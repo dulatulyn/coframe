@@ -219,6 +219,15 @@ export function ProjectFiles({
     q ? tree.diagrams.filter((d) => d.name.toLowerCase().includes(q)) : tree.diagrams.filter((d) => d.folderId === folderId),
   );
 
+  const shown = new Set(diagrams.map((d) => d.id));
+  const nestedUnder = (d: DiagramMeta) => !q && d.kind === "dmn" && !!d.ownerId && shown.has(d.ownerId);
+  const ordered: { d: DiagramMeta; nested: boolean }[] = [];
+  for (const d of diagrams) {
+    if (nestedUnder(d)) continue;
+    ordered.push({ d, nested: false });
+    for (const child of diagrams) if (child.ownerId === d.id && nestedUnder(child)) ordered.push({ d: child, nested: true });
+  }
+
   const breadcrumb: FolderModel[] = [];
   for (let f = current; f; f = f.parentId ? folderById.get(f.parentId) ?? null : null) breadcrumb.unshift(f);
 
@@ -501,7 +510,7 @@ export function ProjectFiles({
             {q ? "No diagram matches your search." : canEdit ? "No diagrams here yet. Create one or drop a .bpmn file." : "No diagrams here yet."}
           </p>
         )}
-        {diagrams.map((d, i) => {
+        {ordered.map(({ d, nested }, i) => {
           const people = peopleIn(d.id);
           const active = d.id === activeDiagramId;
           const actions: ItemAction[] = [
@@ -524,7 +533,7 @@ export function ProjectFiles({
                   },
                 ] satisfies ItemAction[])
               : []),
-            { label: "Download .bpmn", icon: Download, href: `/api/diagrams/${d.id}/xml` },
+            { label: d.kind === "dmn" ? "Download .dmn" : "Download .bpmn", icon: Download, href: `/api/diagrams/${d.id}/xml` },
             ...(canEdit
               ? ([
                   "separator",
@@ -601,7 +610,8 @@ export function ProjectFiles({
                   <Link
                     href={`/p/${projectId}/${d.id}`}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl py-2 pl-2 pr-10 text-left hover:bg-fog",
+                      "flex w-full items-center gap-3 rounded-xl py-2 pr-10 text-left hover:bg-fog",
+                      nested ? "pl-7" : "pl-2",
                       active && "bg-fog",
                     )}
                     {...dragProps}
@@ -612,7 +622,7 @@ export function ProjectFiles({
                       version={d.previewUpdatedAt}
                       seed={i}
                       minWidth={420}
-                      className="h-9 w-12 shrink-0 rounded-lg border border-hairline"
+                      className={cn("shrink-0 rounded-lg border border-hairline", nested ? "h-7 w-9" : "h-9 w-12")}
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
@@ -620,7 +630,8 @@ export function ProjectFiles({
                         <span className="truncate text-[14px] font-medium leading-5">{d.name}</span>
                       </span>
                       <span className="block truncate text-[12px] leading-4 text-slate">
-                        {q && d.folderId ? `${folderById.get(d.folderId)?.name ?? ""} · ` : ""}Updated {timeAgo(d.contentUpdatedAt)}
+                        {q && d.folderId ? `${folderById.get(d.folderId)?.name ?? ""} · ` : ""}
+                        {nested ? "Decision table · " : ""}Updated {timeAgo(d.contentUpdatedAt)}
                       </span>
                     </span>
                     {people.length > 0 && <Facepile users={people} size={20} max={2} />}

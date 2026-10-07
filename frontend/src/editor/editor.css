@@ -415,3 +415,36 @@
 .coframe-editor .bjs-breadcrumbs {
   display: none;
 }
+
+.coframe-decision-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 92px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgb(62 99 221 / 0.35);
+  background: #eef2ff;
+  color: #2f4fbf;
+  font: 600 10px/1 var(--font-sans, system-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+}
+
+.coframe-decision-badge span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coframe-decision-badge:hover {
+  background: #e0e7ff;
+}
+
+.coframe-decision-badge.is-missing {
+  border-style: dashed;
+  border-color: rgb(16 16 18 / 0.3);
+  background: #fff;
+  color: #71717a;
+}

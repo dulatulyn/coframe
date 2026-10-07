@@ -29,6 +29,7 @@
     "diagram-js-grid": "^2.1.0",
     "diagram-js-minimap": "^5.5.0",
     "dmn-js": "^17.12.2",
+    "feelin": "^8.2.0",
     "fractional-indexing": "^4.0.0",
     "lib0": "^0.2.119",
     "lucide-react": "^1.49.0",
