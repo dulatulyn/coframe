@@ -150,6 +150,7 @@ export type AiOp = {
   after?: string | null;
   attachTo?: string | null;
   interrupting?: boolean | null;
+  label?: string | null;
   source?: string | null;
   target?: string | null;
   element?: string | null;

@@ -30,12 +30,14 @@ you were given. New elements get a temporary ref (new1, new2, ...) that later op
 - add: create an element. Fields: ref, type (e.g. bpmn:UserTask, bpmn:ExclusiveGateway, bpmn:EndEvent,
   bpmn:IntermediateCatchEvent, bpmn:TextAnnotation), optional event (message, timer, error, escalation, signal,
   conditional, compensate, link, terminate), name, after (an element id or ref: the new element is placed right after
-  it and connected from it). Boundary events are created with attach, not add.
+  it and connected from it), label (text on that new flow: when after is a decision, the answer such as Yes/No).
+  Boundary events are created with attach, not add.
 - attach: put a boundary event on an activity (ref, host = the activity id, event, name, interrupting). Use it for
   deadlines, reminders and errors; continue its path with add (after = its ref) and finish it with an end event.
 - insert: put a new task, intermediate event or gateway into an existing sequence flow, between its source and
   target (ref, type, optional event, name, flow). Use this to add a step in the middle of a process.
-- connect: add a flow from source to target (ids or refs). The editor picks sequence or message flow. A pool id
+- connect: add a flow from source to target (ids or refs), optional label. The editor picks sequence or message
+  flow. A pool id
   can be a source or target: that makes a message flow to or from the pool.
 - rename: set the label of an element, flow, pool or lane (element, name).
 - retype: change an element into another type of the same family (element, type, optional event).
@@ -82,9 +84,10 @@ asks for a change.
 - When elements are selected, they are what the user is pointing at: "this", "these", "here" refer to them, and a
   change happens at or around them unless the user says otherwise.
 - If the request is ambiguous or impossible, say so briefly in reply and return no operations.
-In reply, write element ids in square brackets after their names, e.g. "Check order [Task_check]", and use only simple
-markdown: paragraphs, "- " lists, **bold**. Reply in the language the user writes in; for short stock commands such as "Explain this"
-use the interface language. New labels use the language of the existing labels (or the user's language for an empty
+In reply, write element ids in square brackets after their names, e.g. "Check order [Task_check]". For a change,
+reply is one short paragraph without line breaks. For a question, use simple markdown: short paragraphs, "- " lists,
+**bold**; never more than one empty line in a row. Reply in the language the user writes in; for short stock
+commands such as "Explain this" use the interface language. New labels use the language of the existing labels (or the user's language for an empty
 diagram)."""
 
 SUGGEST = f"""{BPMN_GUIDE}

@@ -31,13 +31,13 @@ def apply(graph: Graph, ops: list[Op]) -> Graph:
     result = copy.deepcopy(graph)
     counter = 0
 
-    def new_flow(source: str, target: str) -> None:
+    def new_flow(source: str, target: str, name: str = "") -> None:
         nonlocal counter
         counter += 1
         a, b = result.nodes.get(source), result.nodes.get(target)
         to_pool = source in result.pools or target in result.pools
         kind = "message" if to_pool or (a and b and a.pool != b.pool) else "sequence"
-        result.flows[f"__sim_{counter}"] = Flow(f"__sim_{counter}", kind, source, target)
+        result.flows[f"__sim_{counter}"] = Flow(f"__sim_{counter}", kind, source, target, name)
 
     def add_node(op: Op, anchor: Node | None) -> Node:
         node = Node(
@@ -62,16 +62,16 @@ def apply(graph: Graph, ops: list[Op]) -> Graph:
             anchor = result.nodes.get(op.after or op.attach_to or "")
             node = add_node(op, anchor)
             if op.after and op.after in result.nodes:
-                new_flow(op.after, node.id)
+                new_flow(op.after, node.id, op.label or "")
         elif op.op == "insert":
             flow = result.flows.pop(op.flow or "", None)
             if flow is None:
                 continue
             node = add_node(op, result.nodes.get(flow.source))
-            new_flow(flow.source, node.id)
+            new_flow(flow.source, node.id, flow.name)
             new_flow(node.id, flow.target)
         elif op.op == "connect":
-            new_flow(op.source or "", op.target or "")
+            new_flow(op.source or "", op.target or "", op.label or "")
         elif op.op == "rename":
             target = op.element or ""
             if target in result.nodes:

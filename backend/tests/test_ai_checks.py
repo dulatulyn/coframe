@@ -337,3 +337,21 @@ def test_attach_creates_a_boundary_event_on_its_host():
         "Task_payment",
         False,
     )
+
+
+def test_new_decision_branches_carry_their_labels():
+    from app.ai.ops import Op, validate_ops
+    from app.ai.simulate import evaluate
+
+    graph = build_graph(bpmn('<bpmn:startEvent id="S" name="Request received"/>'))
+    ops = validate_ops(
+        [
+            Op(op="add", ref="g", type="bpmn:ExclusiveGateway", name="Approved?", after="S"),
+            Op(op="add", ref="t", type="bpmn:UserTask", name="Book leave", after="g", label="Yes"),
+            Op(op="add", ref="e1", type="bpmn:EndEvent", name="Leave booked", after="t"),
+            Op(op="add", ref="e2", type="bpmn:EndEvent", name="Request rejected", after="g", label="No"),
+        ],
+        graph,
+    )
+    outcome = evaluate(graph, run_checks(graph), ops)
+    assert "unlabeled-branch" not in {f.rule for f in outcome.introduces}

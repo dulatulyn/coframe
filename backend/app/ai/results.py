@@ -32,11 +32,11 @@ class AiReview(BaseModel):
 
 
 class AiCommand(BaseModel):
-    reply: str = Field(description="The answer to the user, or one or two sentences on what the change does.")
     title: str | None = Field(
         default=None, description="Short imperative name of the change; null without ops."
     )
     ops: list[AnyOp] = Field(default_factory=list, description="Operations that make the requested change.")
+    reply: str = Field(description="The answer to the user, or one or two sentences on what the change does.")
 
 
 class AiSuggestion(BaseModel):

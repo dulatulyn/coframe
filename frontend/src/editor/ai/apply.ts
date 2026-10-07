@@ -74,6 +74,8 @@ class ApplyOpsHandler {
             const source = resolve(op.after);
             if (!source) throw new Error("missing source");
             created = autoPlace.append(source, shape);
+            const incoming = (created.incoming ?? []).find((c: Element) => c.source === source);
+            if (op.label && incoming) modeling.updateLabel(incoming, op.label);
           } else {
             const position = freeSpot();
             created = modeling.createShape(shape, position, parentAt(position));
@@ -121,7 +123,8 @@ class ApplyOpsHandler {
           const allowed = rules.canConnect(source, target);
           if (!allowed) throw new Error("not allowed");
           const connection = modeling.connect(source, target, allowed);
-          if (op.name && connection) modeling.updateLabel(connection, op.name);
+          const label = op.label ?? op.name;
+          if (label && connection) modeling.updateLabel(connection, label);
           markNew(connection);
         } else if (op.op === "rename") {
           const element = resolve(op.element);

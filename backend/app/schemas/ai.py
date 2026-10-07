@@ -27,6 +27,7 @@ class OpOut(Schema):
     after: str | None = None
     attach_to: str | None = None
     interrupting: bool | None = None
+    label: str | None = None
     source: str | None = None
     target: str | None = None
     element: str | None = None

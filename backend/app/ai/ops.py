@@ -78,6 +78,7 @@ class Op(BaseModel):
     flow: str | None = Field(
         default=None, description="insert/set_default/label_flow: id of the sequence flow."
     )
+    label: str | None = Field(default=None, description="add/connect: label of the new flow.")
 
 
 Id = Annotated[str, Field(description="An id given in the diagram or a ref created by an earlier operation.")]
@@ -91,11 +92,15 @@ EventTrigger = Annotated[
 class AddOp(BaseModel):
     op: Literal["add"]
     ref: NewRef
-    type: str = Field(description="BPMN type such as bpmn:UserTask, bpmn:EndEvent or bpmn:BoundaryEvent.")
+    type: str = Field(description="BPMN type such as bpmn:UserTask, bpmn:ExclusiveGateway or bpmn:EndEvent.")
     name: str
     event: EventTrigger = None
     after: Id | None = Field(
         default=None, description="The new element is placed after and connected from it."
+    )
+    label: str | None = Field(
+        default=None,
+        description="Label of the flow from `after`, e.g. the answer Yes or No when `after` is a decision.",
     )
     attach_to: Id | None = Field(default=None, description="Activity id, only for bpmn:BoundaryEvent.")
     interrupting: bool | None = Field(
@@ -131,6 +136,7 @@ class ConnectOp(BaseModel):
     op: Literal["connect"]
     source: Id = Field(description="An element id or ref, or a pool id for a message flow from that pool.")
     target: Id = Field(description="An element id or ref, or a pool id for a message flow to that pool.")
+    label: str | None = Field(default=None, description="Label of the new flow, e.g. a decision answer.")
 
 
 class RenameOp(BaseModel):
