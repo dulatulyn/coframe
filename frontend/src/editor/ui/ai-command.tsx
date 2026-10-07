@@ -17,6 +17,10 @@ type Element = any;
 type Box = { x: number; y: number; right: number; bottom: number };
 
 const PANEL_WIDTH = 380;
+
+function timestamp(): number {
+  return Date.now();
+}
 const MAX_HEIGHT = 520;
 const MIN_SPACE = 240;
 const TOP_INSET = 76;
@@ -72,6 +76,9 @@ export function AiCommand({
   const command = useAiCommand(diagramId);
   const [draft, setDraft] = useState("");
   const [reply, setReply] = useState<{ key: string; result: AiCommandResult } | null>(null);
+  const request = useRef(0);
+  const [startedAt, setStartedAt] = useState(0);
+  const [now, setNow] = useState(0);
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const box = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -116,14 +123,30 @@ export function AiCommand({
     };
   }, [open, onOpenChange, command.isPending]);
 
+  useEffect(() => {
+    if (!command.isPending) return;
+    const timer = setInterval(() => setNow(timestamp()), 1000);
+    return () => clearInterval(timer);
+  }, [command.isPending]);
+
+  const cancel = () => {
+    request.current += 1;
+    command.reset();
+  };
+
   const send = (text: string) => {
     const question = text.trim();
     if (!question || command.isPending) return;
     setReply(null);
+    const id = ++request.current;
+    const at = timestamp();
+    setStartedAt(at);
+    setNow(at);
     command.mutate(
       { messages: [{ role: "user", text: question }], selection: ids, language: userLanguage() },
       {
         onSuccess: (result) => {
+          if (id !== request.current) return;
           setDraft("");
           if (result.ops.length && !readOnly) {
             applyOps(editor, result.ops, result.title ?? question);
@@ -275,9 +298,14 @@ export function AiCommand({
             </Button>
           </form>
           {command.isPending && (
-            <p className="px-3.5 pb-3 text-[12px] text-slate">
-              Reading the diagram and checking the change before it lands…
-            </p>
+            <div className="flex items-center gap-2 px-3.5 pb-3 text-[12px] text-slate">
+              <span className="min-w-0 flex-1">
+                Drafting the change · <span className="tabular-nums">{Math.max(0, Math.round((now - startedAt) / 1000))}s</span>
+              </span>
+              <button type="button" onClick={cancel} className="shrink-0 rounded-full px-2 py-1 font-medium text-ink hover:bg-fog">
+                Cancel
+              </button>
+            </div>
           )}
         </>
       )}

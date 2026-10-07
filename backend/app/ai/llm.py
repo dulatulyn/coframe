@@ -44,6 +44,18 @@ class AiUnavailable(RuntimeError):
 
 
 JSON_ATTEMPTS = 2
+MAX_JSON_CHARS = 40_000
+BLANK_RUN = re.compile(r"(?:\\[nrt]|\s){48,}$")
+
+
+def runaway(text: str) -> bool:
+    if len(text) > MAX_JSON_CHARS:
+        return True
+    tail = text[-600:]
+    if BLANK_RUN.search(tail):
+        return True
+    probe = text[-60:]
+    return len(text) > 600 and len(probe.strip()) > 0 and tail.count(probe) >= 4
 
 
 class AiFailed(RuntimeError):
@@ -149,6 +161,34 @@ class Gemini:
         )
         return Usage(model, prompt, output)
 
+    async def _stream_json(self, model: str, config: object, prompt: str) -> tuple[str, Usage, object, bool]:
+        stream = await self.client.aio.models.generate_content_stream(
+            model=model, contents=prompt, config=config
+        )
+        text = ""
+        metadata = None
+        finish = None
+        stopped = False
+        try:
+            async for chunk in stream:
+                if chunk.usage_metadata is not None:
+                    metadata = chunk.usage_metadata
+                if chunk.candidates and chunk.candidates[0].finish_reason:
+                    finish = chunk.candidates[0].finish_reason
+                if chunk.text:
+                    text += chunk.text
+                    if runaway(text):
+                        stopped = True
+                        break
+        finally:
+            closer = getattr(stream, "aclose", None)
+            if closer is not None:
+                await closer()
+        usage = self._usage(model, metadata)
+        if metadata is None:
+            usage = Usage(model, len(prompt) // 3, len(text) // 3)
+        return text, usage, finish, stopped
+
     async def generate_json(
         self, tier: Tier, system: str, prompt: str, schema: type[T], thinking: str | None = None
     ) -> tuple[T, Usage]:
@@ -156,26 +196,31 @@ class Gemini:
         spent = Usage(model, 0, 0)
         failure: Exception | None = None
         for attempt in range(JSON_ATTEMPTS):
-            response = await self.client.aio.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=self._config(
-                    tier,
-                    system,
-                    thinking,
-                    response_mime_type="application/json",
-                    response_json_schema=schema.model_json_schema(),
-                ),
+            config = self._config(
+                tier,
+                system,
+                thinking,
+                response_mime_type="application/json",
+                response_json_schema=schema.model_json_schema(),
             )
-            usage = self._usage(model, response.usage_metadata)
+            text, usage, finish, stopped = await self._stream_json(model, config, prompt)
             spent = Usage(
                 model, spent.input_tokens + usage.input_tokens, spent.output_tokens + usage.output_tokens
             )
+            if stopped:
+                log.warning(
+                    "stopped a runaway %s answer (attempt %d) after %d chars: %r",
+                    model,
+                    attempt + 1,
+                    len(text),
+                    text[-160:],
+                )
+                failure = AiFailed("runaway answer")
+                continue
             try:
-                return schema.model_validate_json(response.text or ""), spent
+                return schema.model_validate_json(text), spent
             except Exception as exc:
-                reason = response.candidates[0].finish_reason if response.candidates else None
-                log.warning("unusable %s answer (attempt %d, finish %s): %s", model, attempt + 1, reason, exc)
+                log.warning("unusable %s answer (attempt %d, finish %s): %s", model, attempt + 1, finish, exc)
                 failure = exc
         raise AiFailed("the model returned an unexpected answer", spent) from failure
 

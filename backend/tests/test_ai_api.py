@@ -354,3 +354,14 @@ async def test_generation_needs_edit_access(fake_ai, make_user: MakeUser):
         f"/api/projects/{project['id']}/ai/generate", json={"description": "Anything at all"}
     )
     assert r.status_code in (403, 404)
+
+
+def test_runaway_answers_are_detected():
+    from app.ai.llm import runaway
+
+    assert runaway('{"title": "Create' + "\\n" * 60)
+    assert runaway('{"title": "' + "Create the process/" * 40)
+    ops = ",".join(
+        f'{{"op": "add", "ref": "n{i}", "type": "bpmn:Task", "name": "Step {i}"}}' for i in range(30)
+    )
+    assert not runaway('{"ops": [' + ops)
