@@ -74,7 +74,7 @@ export function GenerateDialog({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              maxLength={4000}
+              maxLength={60000}
               rows={7}
               placeholder={EXAMPLE}
               disabled={stage !== "idle"}

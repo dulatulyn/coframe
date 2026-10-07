@@ -116,7 +116,7 @@ class AiStatusOut(Schema):
 
 
 class GenerateIn(Schema):
-    description: str = Field(min_length=3, max_length=4000)
+    description: str = Field(min_length=3, max_length=60000)
     language: str = "English"
 
 

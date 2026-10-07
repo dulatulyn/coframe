@@ -45,6 +45,7 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       import("./subprocess"),
       import("./dmn/decision-pad"),
     ]);
+  const { FeedbackModule } = await import("./feedback");
   return new Modeler({
     container,
     bpmnRenderer: renderer,
@@ -60,6 +61,7 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       MenuIconsModule,
       SubProcessPadModule,
       DecisionPadModule,
+      FeedbackModule,
     ],
   });
 }

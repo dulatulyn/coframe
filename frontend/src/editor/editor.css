@@ -448,3 +448,10 @@
   background: #fff;
   color: #71717a;
 }
+
+.coframe-editor .djs-shape.coframe-pool-hint .djs-outline {
+  visibility: visible;
+  stroke: #3e63dd;
+  stroke-width: 3px;
+  stroke-dasharray: 8 5;
+}

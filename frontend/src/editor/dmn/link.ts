@@ -8,6 +8,18 @@ export const DECISION_CREATE_EVENT = "coframe.decision.create";
 
 const ROUTING = new Set(["bpmn:ExclusiveGateway", "bpmn:InclusiveGateway"]);
 
+const CONVERTIBLE = new Set(["bpmn:Task", "bpmn:UserTask", "bpmn:ManualTask", "bpmn:ServiceTask", "bpmn:ScriptTask"]);
+
+export function canBecomeRuleTask(element: Element): boolean {
+  return CONVERTIBLE.has(element?.type);
+}
+
+export function addDecisionTable(get: (name: string) => any, element: Element): void {
+  const target = isRuleTask(element) ? element : get("bpmnReplace").replaceElement(element, { type: "bpmn:BusinessRuleTask" });
+  get("selection").select(target);
+  get("eventBus").fire(DECISION_CREATE_EVENT, { element: target });
+}
+
 export function isRuleTask(element: Element): boolean {
   return element?.type === "bpmn:BusinessRuleTask";
 }

@@ -9,7 +9,7 @@ import { Glyph } from "@/components/bpmn/glyphs";
 import { useTree } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
-import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT } from "../dmn/link";
+import { addDecisionTable, canBecomeRuleTask, DECISION_CREATE_EVENT, DECISION_OPEN_EVENT } from "../dmn/link";
 import { service, type BpmnEditor } from "../modeler";
 import { isCollapsedSubProcess, isExpandedSubProcess, toggleSubProcess } from "../subprocess";
 import { COLORS, describe, isActivity } from "./element-info";
@@ -327,6 +327,19 @@ export function EditorInspector({
             empty="Not linked"
             kind="bpmn"
           />
+        )}
+
+        {!readOnly && canBecomeRuleTask(element) && (
+          <Field label="Decision table">
+            <button
+              type="button"
+              onClick={() => addDecisionTable((name) => service(editor, name), element)}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-soft text-[13px] font-medium hover:border-ink"
+            >
+              <Plus className="size-4" /> Add a decision table
+            </button>
+            <p className="mt-1 text-[12px] leading-4 text-slate">Turns this step into a business rule task with its own table.</p>
+          </Field>
         )}
 
         {element.type === "bpmn:BusinessRuleTask" && (

@@ -21,7 +21,7 @@ MODEL_PATTERNS: dict[Tier, re.Pattern[str]] = {
     "smart": re.compile(r"^gemini-(\d+(?:\.\d+)?)-pro$"),
     "fast": re.compile(r"^gemini-(\d+(?:\.\d+)?)-flash$"),
 }
-MAX_OUTPUT_TOKENS: dict[Tier, int] = {"smart": 12000, "fast": 3000}
+MAX_OUTPUT_TOKENS: dict[Tier, int] = {"smart": 32000, "fast": 3000}
 THINKING_LEVELS: dict[Tier, str | None] = {"smart": None, "fast": "LOW"}
 
 
@@ -44,7 +44,7 @@ class AiUnavailable(RuntimeError):
 
 
 JSON_ATTEMPTS = 2
-MAX_JSON_CHARS = 40_000
+MAX_JSON_CHARS = 100_000
 BLANK_RUN = re.compile(r"(?:\\[nrt]|\s){48,}$")
 
 

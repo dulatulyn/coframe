@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 MAX_DESCRIPTION_CHARS = 120_000
 MAX_CHAT_MESSAGES = 12
-MAX_MESSAGE_CHARS = 4000
+MAX_MESSAGE_CHARS = 60000
 
 
 async def linked_tables(db: Db, project_id: uuid.UUID, graph: Graph) -> dict[str, LinkedTable]:

@@ -1,4 +1,4 @@
-import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId } from "./link";
+import { addDecisionTable, canBecomeRuleTask, DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId } from "./link";
 
 type Element = any;
 
@@ -9,16 +9,27 @@ const ICON =
   );
 
 class DecisionPadProvider {
-  static $inject = ["contextPad", "eventBus"];
+  static $inject = ["contextPad", "eventBus", "injector"];
 
   constructor(
     contextPad: { registerProvider(priority: number, provider: unknown): void },
     private eventBus: { fire(type: string, data: unknown): void },
+    private injector: { get(name: string): any },
   ) {
     contextPad.registerProvider(395, this);
   }
 
   getContextPadEntries(element: Element) {
+    if (canBecomeRuleTask(element)) {
+      return {
+        "coframe-decision": {
+          group: "coframe",
+          imageUrl: ICON,
+          title: "Add a decision table (turns this step into a business rule task)",
+          action: { click: (_event: Event, target: Element) => addDecisionTable((name) => this.injector.get(name), target) },
+        },
+      };
+    }
     if (!isRuleTask(element)) return {};
     const linked = !!linkedDecisionId(element);
     return {
