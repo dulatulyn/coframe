@@ -1,3 +1,4 @@
+import re
 import secrets
 import uuid
 
@@ -8,10 +9,12 @@ from app.db import utcnow
 from app.deps import CurrentUser, Db
 from app.models import Access, Diagram, Project
 from app.permissions import load_diagram, not_found
-from app.schemas.tree import PublicDiagramOut, PublicLinkOut
+from app.schemas.tree import PublicDecisionOut, PublicDiagramOut, PublicLinkOut
 from app.services.realtime import flush_diagram
 
 router = APIRouter(tags=["public"])
+
+LINK = re.compile(r'coframe:diagram="([0-9a-fA-F-]{36})"')
 
 
 @router.put("/diagrams/{diagram_id}/public-link", response_model=PublicLinkOut)
@@ -52,9 +55,27 @@ async def public_diagram(token: str, db: Db) -> PublicDiagramOut:
     diagram, project_name = row
     await flush_diagram(diagram.id)
     await db.refresh(diagram, ["xml", "content_updated_at", "name"])
+    linked = set()
+    for value in LINK.findall(diagram.xml):
+        try:
+            linked.add(uuid.UUID(value))
+        except ValueError:
+            continue
+    decisions = []
+    if linked:
+        tables = await db.scalars(
+            select(Diagram).where(
+                Diagram.id.in_(linked),
+                Diagram.project_id == diagram.project_id,
+                Diagram.kind == "dmn",
+                Diagram.deleted_at.is_(None),
+            )
+        )
+        decisions = [PublicDecisionOut(id=t.id, name=t.name, xml=t.xml) for t in tables]
     return PublicDiagramOut(
         name=diagram.name,
         xml=diagram.xml,
         project_name=project_name,
         content_updated_at=diagram.content_updated_at,
+        decisions=decisions,
     )

@@ -34,6 +34,7 @@ class DiagramIn(Schema):
     folder_id: uuid.UUID | None = None
     xml: str | None = None
     kind: Literal["bpmn", "dmn"] = "bpmn"
+    owner_id: uuid.UUID | None = None
 
 
 class ContentIn(Schema):
@@ -49,6 +50,7 @@ class DiagramPatchIn(Schema):
     folder_id: uuid.UUID | None = None
     position: str | None = None
     pinned: bool | None = None
+    owner_id: uuid.UUID | None = None
 
 
 class DiagramMeta(Schema):
@@ -64,6 +66,7 @@ class DiagramMeta(Schema):
     pinned_at: datetime | None
     updated_by: PublicUser | None
     kind: str = "bpmn"
+    owner_id: uuid.UUID | None = None
 
 
 class DiagramOut(DiagramMeta):
@@ -76,11 +79,18 @@ class PublicLinkOut(Schema):
     token: str
 
 
+class PublicDecisionOut(Schema):
+    id: uuid.UUID
+    name: str
+    xml: str
+
+
 class PublicDiagramOut(Schema):
     name: str
     xml: str
     project_name: str
     content_updated_at: datetime
+    decisions: list[PublicDecisionOut] = []
 
 
 class DiagramVersionOut(Schema):

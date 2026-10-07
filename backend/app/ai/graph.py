@@ -23,6 +23,8 @@ ACTIVITIES = {
 DATA = {"dataObjectReference", "dataStoreReference", "dataInput", "dataOutput"}
 ARTIFACTS = {"textAnnotation", "group"}
 FLOW_NODES = EVENTS | GATEWAYS | ACTIVITIES
+COFRAME_NS = "https://coframe.run/schema/bpmn/1.0"
+COFRAME_LINK = f"{{{COFRAME_NS}}}diagram"
 
 
 def _local(el: etree._Element) -> str:
@@ -56,6 +58,7 @@ class Node:
     expanded: bool = True
     loop: str | None = None
     default_flow: str | None = None
+    decision: str | None = None
     incoming: list[str] = field(default_factory=list)
     outgoing: list[str] = field(default_factory=list)
 
@@ -195,6 +198,8 @@ def build_graph(xml: str | bytes) -> Graph:
                 node.loop = _loop_kind(child)
             if kind in GATEWAYS | ACTIVITIES:
                 node.default_flow = child.get("default")
+            if kind in ("businessRuleTask", "callActivity"):
+                node.decision = child.get(COFRAME_LINK)
             if kind in CONTAINERS:
                 node.triggered_by_event = child.get("triggeredByEvent") == "true"
                 node.expanded = expanded.get(cid) != "false"

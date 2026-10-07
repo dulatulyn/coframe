@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from sqlalchemy import select
 
+from app.bpmn.dmn import rename_single_decision
 from app.bpmn.svg import sanitize_svg
 from app.bpmn.xmlsafe import InvalidXml, parse_bpmn, parse_dmn
 from app.config import settings
@@ -52,14 +53,23 @@ async def create(
         except InvalidXml as exc:
             raise bad_request("invalid_dmn" if body.kind == "dmn" else "invalid_bpmn") from exc
     default_name = DEFAULT_DECISION_NAME if body.kind == "dmn" else DEFAULT_DIAGRAM_NAME
+    folder_id = body.folder_id
+    if body.owner_id is not None:
+        owner = await db.get(Diagram, body.owner_id)
+        foreign = owner is None or owner.project_id != project.id or owner.deleted_at is not None
+        if body.kind != "dmn" or foreign or owner.kind != "bpmn":
+            raise bad_request("invalid_owner")
+        if "folder_id" not in body.model_fields_set:
+            folder_id = owner.folder_id
     diagram = await create_diagram(
         db,
         project,
         user,
         name=body.name or default_name,
-        folder_id=body.folder_id,
+        folder_id=folder_id,
         xml=body.xml,
         kind=body.kind,
+        owner_id=body.owner_id,
     )
     await db.commit()
     await publish(project.id, "tree")
@@ -88,11 +98,27 @@ async def update_diagram(
     if moving and body.folder_id is not None and await live_folder(db, project.id, body.folder_id) is None:
         raise not_found("folder_not_found")
     pinning = body.pinned is not None and body.pinned != (diagram.pinned_at is not None)
-    if body.name is None and not moving and body.position is None and not pinning:
+    owning = "owner_id" in body.model_fields_set and body.owner_id != diagram.owner_id
+    if owning and body.owner_id is not None:
+        owner = await db.get(Diagram, body.owner_id)
+        foreign = owner is None or owner.project_id != project.id or owner.deleted_at is not None
+        if diagram.kind != "dmn" or foreign or owner.kind != "bpmn":
+            raise bad_request("invalid_owner")
+    if body.name is None and not moving and body.position is None and not pinning and not owning:
         return diagram_meta(diagram)
 
     now = utcnow()
-    if body.name is not None:
+    content_changed = False
+    if owning:
+        diagram.owner_id = body.owner_id
+    if body.name is not None and body.name != diagram.name:
+        if diagram.kind == "dmn":
+            await db.refresh(diagram, ["xml"])
+            renamed = rename_single_decision(diagram.xml, body.name)
+            if renamed is not None and renamed != diagram.xml:
+                diagram.xml = renamed
+                diagram.content_updated_at = now
+                content_changed = True
         diagram.name = body.name
     if pinning:
         diagram.pinned_at = now if body.pinned else None
@@ -106,6 +132,8 @@ async def update_diagram(
     touch_project(project, now)
     await db.commit()
     await publish(project.id, "tree")
+    if content_changed:
+        await publish(project.id, "content")
     return diagram_meta(diagram)
 
 
@@ -154,6 +182,7 @@ async def duplicate(diagram_id: uuid.UUID, user: CurrentUser, db: Db) -> Diagram
         position=await diagram_position_after(db, diagram),
         xml=diagram.xml,
         kind=diagram.kind,
+        owner_id=diagram.owner_id,
         preview_svg=preview_svg,
         preview_updated_at=diagram.preview_updated_at if preview_svg is not None else None,
         created_by=user.id,

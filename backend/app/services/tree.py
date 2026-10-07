@@ -265,6 +265,7 @@ def diagram_fields(diagram: Diagram) -> dict:
         "pinned_at": diagram.pinned_at,
         "updated_by": public_user(diagram.updater),
         "kind": diagram.kind,
+        "owner_id": diagram.owner_id,
     }
 
 

@@ -151,6 +151,7 @@ async def create_diagram(
     folder_id: uuid.UUID | None = None,
     xml: str | None = None,
     kind: str = "bpmn",
+    owner_id: uuid.UUID | None = None,
 ) -> Diagram:
     now = utcnow()
     diagram = Diagram(
@@ -160,6 +161,7 @@ async def create_diagram(
         position=await next_diagram_position(db, project.id, folder_id),
         xml=xml if xml is not None else new_decision_xml(name) if kind == "dmn" else new_diagram_xml(),
         kind=kind,
+        owner_id=owner_id,
         created_by=user.id,
         updated_by=user.id,
         updater=user,

@@ -169,6 +169,9 @@ class Diagram(Base):
     trashed_with: Mapped[uuid.UUID | None] = mapped_column()
     public_token: Mapped[str | None] = mapped_column(String(32), unique=True)
     kind: Mapped[str] = mapped_column(String(8), default="bpmn", server_default="bpmn")
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("diagrams.id", ondelete="SET NULL"), index=True
+    )
 
     updater: Mapped[User | None] = relationship(foreign_keys=[updated_by], lazy="joined")
 

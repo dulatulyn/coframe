@@ -22,6 +22,8 @@ BPMN rules you apply:
 - Naming: tasks are verb + object ("Check order"), events are object + state ("Order received"), gateways are
   questions ("Order complete?"). Keep the language of the existing labels.
 - Lanes show who does the work; a task in the wrong lane is a responsibility problem.
+- A business rule task decides with its decision table (DMN). The gateway after it should have one branch per
+  result the table can return, labeled with that result; the table's inputs should be available at that point.
 """.strip()
 
 OPS_GUIDE = """
