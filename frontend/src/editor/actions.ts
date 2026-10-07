@@ -148,6 +148,55 @@ export async function exportPdf(editor: BpmnEditor, name: string): Promise<void>
   download(pdf, `${safeFileName(name)}.pdf`);
 }
 
+export type XmlLoader = (diagramId: string) => Promise<string | null>;
+
+export const loadDiagramXml: XmlLoader = async (diagramId) => {
+  const res = await fetch(`/api/diagrams/${diagramId}/xml`, { credentials: "same-origin" });
+  return res.ok ? res.text() : null;
+};
+
+export async function exportPdfWithDecisions(editor: BpmnEditor, name: string, load: XmlLoader = loadDiagramXml): Promise<number> {
+  const [{ isRuleTask, linkedDecisionId }, { parseDmn }, { renderDecisionTable }, { jpegsToPdf }] = await Promise.all([
+    import("./dmn/link"),
+    import("@/lib/dmn"),
+    import("./dmn/render-table"),
+    import("./pdf"),
+  ]);
+  const page = async (image: { blob: Blob; width: number; height: number; cssWidth: number; cssHeight: number }) => ({
+    jpeg: new Uint8Array(await image.blob.arrayBuffer()),
+    pixelWidth: image.width,
+    pixelHeight: image.height,
+    pageWidth: image.cssWidth * 0.75,
+    pageHeight: image.cssHeight * 0.75,
+  });
+  const pages = [await page(await renderImage(editor, 3, "image/jpeg", 0.95))];
+  const tasks = service(editor, "elementRegistry")
+    .filter((e: { type: string }) => isRuleTask(e))
+    .filter((e: unknown) => linkedDecisionId(e))
+    .sort((a: { x: number; y: number }, b: { x: number; y: number }) => a.x - b.x || a.y - b.y);
+  const seen = new Set<string>();
+  let tables = 0;
+  for (const task of tasks) {
+    const id = linkedDecisionId(task)!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const xml = await load(id);
+    if (!xml) continue;
+    for (const decision of parseDmn(xml)) {
+      if (decision.kind !== "table") continue;
+      const taskName = task.businessObject?.name?.trim() || "business rule task";
+      const image = await renderDecisionTable(decision, {
+        title: decision.name || taskName,
+        subtitle: `Used by “${taskName}” in “${name}”`,
+      });
+      pages.push(await page(image));
+      tables += 1;
+    }
+  }
+  download(jpegsToPdf(pages), `${safeFileName(name)}.pdf`);
+  return tables;
+}
+
 export async function copyImage(editor: BpmnEditor): Promise<void> {
   const png = renderImage(editor, 2, "image/png").then((r) => r.blob);
   await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
@@ -158,7 +207,7 @@ export async function copyXml(editor: BpmnEditor): Promise<void> {
   await navigator.clipboard.writeText(xml ?? "");
 }
 
-export type ExportFormat = "bpmn" | "svg" | "png" | "jpeg" | "pdf" | "copy-image" | "copy-xml";
+export type ExportFormat = "bpmn" | "svg" | "png" | "jpeg" | "pdf" | "pdf-decisions" | "copy-image" | "copy-xml";
 
 export async function runExport(editor: BpmnEditor, format: ExportFormat, name: string): Promise<void> {
   track("export", { format });
@@ -168,6 +217,10 @@ export async function runExport(editor: BpmnEditor, format: ExportFormat, name: 
     else if (format === "png") await exportPng(editor, name);
     else if (format === "jpeg") await exportJpeg(editor, name);
     else if (format === "pdf") await exportPdf(editor, name);
+    else if (format === "pdf-decisions") {
+      const tables = await exportPdfWithDecisions(editor, name);
+      toast.success(tables ? `PDF with ${tables} decision ${tables === 1 ? "table" : "tables"}` : "No decision tables are linked yet");
+    }
     else if (format === "copy-image") {
       await copyImage(editor);
       toast.success("Image copied");

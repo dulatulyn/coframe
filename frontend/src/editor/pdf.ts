@@ -1,20 +1,33 @@
 const encoder = new TextEncoder();
 
+export type PdfPage = { jpeg: Uint8Array; pixelWidth: number; pixelHeight: number; pageWidth: number; pageHeight: number };
+
 export function jpegToPdf(jpeg: Uint8Array, pixelWidth: number, pixelHeight: number, pageWidth: number, pageHeight: number): Blob {
-  const w = pageWidth.toFixed(2);
-  const h = pageHeight.toFixed(2);
-  const content = encoder.encode(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q\n`);
+  return jpegsToPdf([{ jpeg, pixelWidth, pixelHeight, pageWidth, pageHeight }]);
+}
+
+export function jpegsToPdf(pages: PdfPage[]): Blob {
+  const kids = pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ");
   const objects: (string | Uint8Array)[][] = [
     ["<< /Type /Catalog /Pages 2 0 R >>"],
-    ["<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`],
-    [
-      `<< /Type /XObject /Subtype /Image /Width ${pixelWidth} /Height ${pixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,
-      jpeg,
-      "\nendstream",
-    ],
-    [`<< /Length ${content.length} >>\nstream\n`, content, "endstream"],
+    [`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`],
   ];
+  pages.forEach((page, i) => {
+    const w = page.pageWidth.toFixed(2);
+    const h = page.pageHeight.toFixed(2);
+    const image = 4 + i * 3;
+    const contents = 5 + i * 3;
+    const content = encoder.encode(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q\n`);
+    objects.push(
+      [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Im0 ${image} 0 R >> >> /Contents ${contents} 0 R >>`],
+      [
+        `<< /Type /XObject /Subtype /Image /Width ${page.pixelWidth} /Height ${page.pixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${page.jpeg.length} >>\nstream\n`,
+        page.jpeg,
+        "\nendstream",
+      ],
+      [`<< /Length ${content.length} >>\nstream\n`, content, "endstream"],
+    );
+  });
 
   const chunks: Uint8Array[] = [];
   let offset = 0;

@@ -235,7 +235,7 @@ export function DecisionPanel({
   );
 }
 
-function TryIt({ decision, task }: { decision: Decision; task: Element }) {
+export function TryIt({ decision, task }: { decision: Decision; task: Element }) {
   const [values, setValues] = useState<string[]>(() => decision.inputs.map(() => ""));
   const result = useMemo(() => evaluateDecision(decision, values), [decision, values]);
   const output = primaryOutput(decision);

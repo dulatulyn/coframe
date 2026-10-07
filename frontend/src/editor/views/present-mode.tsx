@@ -4,6 +4,11 @@ import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { service, type BpmnEditor } from "../modeler";
+import { parseDmn, pickDecision } from "@/lib/dmn";
+
+import { DecisionTableView } from "../dmn/decision-table-view";
+import { useDiagramXml } from "../dmn/dmn-workspace";
+import { isRuleTask, linkedDecisionId } from "../dmn/link";
 import { describe } from "../ui/element-info";
 import { formatAmount, formatDuration, parseAmount, parseDuration } from "./metrics";
 import { readNodes, type FlowNode } from "./paths";
@@ -79,7 +84,29 @@ function roleOf(editor: BpmnEditor, element: Element): string | null {
   return null;
 }
 
-export function PresentMode({ editor, title, onExit }: { editor: BpmnEditor; title: string; onExit: () => void }) {
+function StepDecision({ tableId, taskName, known }: { tableId: string; taskName: string; known?: string }) {
+  const fetched = useDiagramXml(known === undefined ? tableId : null);
+  const xml = known ?? fetched.data ?? null;
+  const decision = useMemo(() => (xml ? pickDecision(parseDmn(xml), taskName) : null), [xml, taskName]);
+  if (!decision) return null;
+  return (
+    <div className="mt-3 max-h-56 overflow-y-auto">
+      <DecisionTableView decision={decision} compact />
+    </div>
+  );
+}
+
+export function PresentMode({
+  editor,
+  title,
+  onExit,
+  decisions,
+}: {
+  editor: BpmnEditor;
+  title: string;
+  onExit: () => void;
+  decisions?: Map<string, { name: string; xml: string }>;
+}) {
   const [index, setIndex] = useState(0);
 
   const steps = useMemo(() => {
@@ -164,6 +191,14 @@ export function PresentMode({ editor, title, onExit }: { editor: BpmnEditor; tit
                       </li>
                     ))}
                   </ul>
+                )}
+                {isRuleTask(step.element) && linkedDecisionId(step.element) && (
+                  <StepDecision
+                    key={linkedDecisionId(step.element)!}
+                    tableId={linkedDecisionId(step.element)!}
+                    taskName={bo?.name ?? ""}
+                    known={decisions ? decisions.get(linkedDecisionId(step.element)!)?.xml ?? "" : undefined}
+                  />
                 )}
                 {(duration !== null || cost !== null) && (
                   <p className="mt-2 text-[13px] text-slate">

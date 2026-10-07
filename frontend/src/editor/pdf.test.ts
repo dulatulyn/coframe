@@ -25,3 +25,17 @@ describe("jpegToPdf", () => {
     entries.forEach((offset, i) => expect(pdf.slice(offset, offset + 8)).toBe(`${i + 1} 0 obj\n`));
   });
 });
+
+describe("jpegsToPdf", () => {
+  it("writes one page per image", async () => {
+    const { jpegsToPdf } = await import("./pdf");
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+    const page = { jpeg, pixelWidth: 10, pixelHeight: 10, pageWidth: 100, pageHeight: 50 };
+    const pdf = await text(jpegsToPdf([page, page, page]));
+    expect(pdf).toContain("/Kids [3 0 R 6 0 R 9 0 R] /Count 3");
+    const startxref = Number(pdf.match(/startxref\n(\d+)\n/)![1]);
+    const entries = [...pdf.slice(startxref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]));
+    expect(entries).toHaveLength(11);
+    entries.forEach((offset, i) => expect(pdf.slice(offset, offset + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`));
+  });
+});

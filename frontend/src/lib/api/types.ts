@@ -97,7 +97,13 @@ export type ProcessMap = {
   links: { source: string; target: string; label: string; kind: "call" | "decision" }[];
 };
 
-export type PublicDiagram = { name: string; xml: string; projectName: string; contentUpdatedAt: string };
+export type PublicDiagram = {
+  name: string;
+  xml: string;
+  projectName: string;
+  contentUpdatedAt: string;
+  decisions: { id: string; name: string; xml: string }[];
+};
 
 export type DiagramVersion = { id: string; createdAt: string; source: "auto" | "restore"; author: PublicUser | null };
 

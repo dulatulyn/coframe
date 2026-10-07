@@ -317,6 +317,9 @@ export function EditorTopBar({
               <DropdownMenuItem onSelect={() => onExport("pdf")}>
                 <FileText /> Export as PDF
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onExport("pdf-decisions")}>
+                <FileText /> PDF with decision tables
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => onExport("copy-image")}>
                 <ClipboardCopy /> Copy as image

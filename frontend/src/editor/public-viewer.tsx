@@ -2,7 +2,7 @@
 
 import { ExternalLink, Loader2, Minus, Plus, Scan } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Logo, LogoMark } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { usePublicDiagram } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
 import { zoomBy, zoomToFit } from "./actions";
+import { DecisionBadges } from "./dmn/decision-badges";
+import { DecisionPreview } from "./dmn/decision-preview";
+import { DECISION_OPEN_EVENT, linkedDecisionId } from "./dmn/link";
 import { createEditor, service, type BpmnEditor } from "./modeler";
 import { MetricsPanel } from "./views/metrics-panel";
 import { VIEWS, viewInfo, type ViewMode } from "./views/modes";
@@ -31,6 +34,10 @@ export function PublicViewer({ token, embedded }: { token: string; embedded: boo
   const [editor, setEditor] = useState<BpmnEditor | null>(null);
   const [failed, setFailed] = useState(false);
   const [view, setView] = useState<ViewMode>("edit");
+  const [decisionFor, setDecisionFor] = useState<string | null>(null);
+  const [changes, setChanges] = useState(0);
+  const tables = useMemo(() => new Map((data?.decisions ?? []).map((d) => [d.id, d])), [data]);
+  const tableNames = useMemo(() => new Map((data?.decisions ?? []).map((d) => [d.id, d.name])), [data]);
 
   useEffect(() => {
     if (!data || !canvasRef.current) return;
@@ -42,6 +49,8 @@ export function PublicViewer({ token, embedded }: { token: string; embedded: boo
       await viewer.importXML(data.xml);
       if (disposed) return;
       zoomToFit(viewer);
+      service(viewer, "eventBus").on(DECISION_OPEN_EVENT, ({ element }: { element: { id: string } }) => setDecisionFor(element.id));
+      setChanges((n) => n + 1);
       setEditor(viewer);
     })().catch(() => !disposed && setFailed(true));
     return () => {
@@ -152,10 +161,24 @@ export function PublicViewer({ token, embedded }: { token: string; embedded: boo
       )}
 
       {editor && view !== "edit" && view !== "present" && <ViewBanner mode={view} onExit={() => setView("edit")} />}
+      {editor && view !== "present" && <DecisionBadges editor={editor} readOnly version={changes} names={tableNames} />}
+      {editor && decisionFor && view !== "present" && (
+        <DecisionPreview
+          key={decisionFor}
+          editor={editor}
+          taskId={decisionFor}
+          name={tables.get(linkedDecisionId(service(editor, "elementRegistry").get(decisionFor)) ?? "")?.name ?? "Decision table"}
+          xml={tables.get(linkedDecisionId(service(editor, "elementRegistry").get(decisionFor)) ?? "")?.xml ?? null}
+          onClose={() => setDecisionFor(null)}
+          className="absolute right-3 top-20 z-30 max-h-[calc(100%-180px)] w-[min(720px,calc(100%-24px))] rounded-[24px] border border-hairline bg-paper shadow-float"
+        />
+      )}
       {editor && view === "paths" && <PathsPanel editor={editor} />}
       {editor && view === "roles" && <RolesPanel editor={editor} readOnly />}
       {editor && view === "metrics" && <MetricsPanel editor={editor} readOnly />}
-      {editor && data && view === "present" && <PresentMode editor={editor} title={data.name} onExit={() => setView("edit")} />}
+      {editor && data && view === "present" && (
+        <PresentMode editor={editor} title={data.name} onExit={() => setView("edit")} decisions={tables} />
+      )}
 
       {editor && view !== "present" && (
         <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1 rounded-full border border-hairline bg-paper p-1 shadow-float">
