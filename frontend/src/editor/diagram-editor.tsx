@@ -35,6 +35,7 @@ import { AiCommand } from "./ui/ai-command";
 import { AssistantPanel } from "./ui/assistant-panel";
 import { EditorInspector } from "./ui/editor-inspector";
 import { EditorTopBar } from "./ui/editor-top-bar";
+import { PlaneBar } from "./ui/plane-bar";
 import { SessionEndedOverlay } from "./ui/session-ended";
 import { ShortcutsDialog } from "./ui/shortcuts-dialog";
 import { SuggestPopover } from "./ui/suggest-popover";
@@ -373,6 +374,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       </div>
 
+      {editor && editing && !aiChange && <PlaneBar editor={editor} readOnly={readOnly} />}
       {editor && !editing && view !== "present" && <ViewBanner mode={view} onExit={() => setView("edit")} />}
       {editor && view === "present" && <PresentMode editor={editor} title={diagram.name} onExit={() => setView("edit")} />}
       {editor && view === "paths" && <PathsPanel editor={editor} />}

@@ -138,6 +138,29 @@
   min-height: 36px;
 }
 
+.djs-popup .djs-popup-body .entry {
+  align-items: center;
+}
+
+.djs-popup .djs-popup-body .djs-popup-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: inherit;
+  color: #101012;
+}
+
+.djs-popup .djs-popup-body .djs-popup-entry-name {
+  display: flex;
+  align-items: center;
+}
+
+.djs-popup .djs-popup-body .djs-popup-entry-icon + .djs-popup-label {
+  margin-left: 10px;
+}
+
 .djs-popup .djs-popup-body .entry.selected {
   background: #f3f3f4;
 }
@@ -387,4 +410,8 @@
 
 .coframe-dmn .tjs-container {
   font-family: var(--font-sans, system-ui);
+}
+
+.coframe-editor .bjs-breadcrumbs {
+  display: none;
 }

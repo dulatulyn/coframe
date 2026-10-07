@@ -37,10 +37,13 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       import("diagram-js-minimap"),
       import("bpmn-js-color-picker"),
     ]);
-  const [{ SuggestPadModule }, { default: SimulationModule }] = await Promise.all([
-    import("./ai/suggest-pad"),
-    import("bpmn-js-token-simulation/lib/modeler"),
-  ]);
+  const [{ SuggestPadModule }, { default: SimulationModule }, { MenuIconsModule }, { SubProcessPadModule }] =
+    await Promise.all([
+      import("./ai/suggest-pad"),
+      import("bpmn-js-token-simulation/lib/modeler"),
+      import("./menu-icons"),
+      import("./subprocess"),
+    ]);
   return new Modeler({
     container,
     bpmnRenderer: renderer,
@@ -53,6 +56,8 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       ColorPickerModule,
       SuggestPadModule,
       SimulationModule,
+      MenuIconsModule,
+      SubProcessPadModule,
     ],
   });
 }

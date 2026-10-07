@@ -10,6 +10,7 @@ import { useTree } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
 import { service, type BpmnEditor } from "../modeler";
+import { isCollapsedSubProcess, isExpandedSubProcess, toggleSubProcess } from "../subprocess";
 import { COLORS, describe, isActivity } from "./element-info";
 
 type Shape = any;
@@ -256,6 +257,32 @@ export function EditorInspector({
                   className={cn(
                     "rounded-lg py-1.5 text-center transition-colors",
                     markerOf(element) === id ? "bg-paper shadow-sm" : "text-slate hover:text-ink",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+        )}
+
+        {(isCollapsedSubProcess(element) || isExpandedSubProcess(element)) && (
+          <Field label="Content">
+            <div className="grid grid-cols-2 rounded-xl bg-fog p-1 text-[12px] font-medium">
+              {(
+                [
+                  [true, "On the diagram"],
+                  [false, "Separate page"],
+                ] as const
+              ).map(([expanded, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => expanded !== isExpandedSubProcess(element) && toggleSubProcess(editor, element)}
+                  className={cn(
+                    "rounded-lg py-1.5 text-center transition-colors",
+                    isExpandedSubProcess(element) === expanded ? "bg-paper shadow-sm" : "text-slate hover:text-ink",
                   )}
                 >
                   {label}
