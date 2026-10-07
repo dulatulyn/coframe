@@ -455,3 +455,307 @@
   stroke-width: 3px;
   stroke-dasharray: 8 5;
 }
+
+.coframe-dmn,
+.coframe-dmn .bio-theme-parent {
+  --bio-surface: var(--paper);
+  --bio-surface-subtle: #fafafa;
+  --bio-surface-medium: var(--fog);
+  --bio-text: var(--ink);
+  --bio-text-subtle: #52525b;
+  --bio-text-subtlest: var(--slate);
+  --bio-text-on-primary: #ffffff;
+  --bio-text-on-inverted: #ffffff;
+  --bio-border: var(--hairline);
+  --bio-primary: var(--cobalt);
+  --bio-primary-hover: #1f56e0;
+  --bio-neutral: var(--ink);
+  --bio-danger: #e5484d;
+  --bio-danger-text: #c62a2f;
+  --bio-danger-surface-subtle: #fff1f1;
+  --bio-focus: var(--cobalt);
+  --bio-focus-ring: rgb(47 107 255 / 0.22);
+  --bio-focus-ring-danger: rgb(229 72 77 / 0.22);
+  --bio-shadow-subtle: rgb(16 16 18 / 0.06);
+  --bio-canvas-accent: var(--cobalt);
+  --bio-radius-sm: 8px;
+  --bio-radius-md: 10px;
+  --bio-radius-lg: 14px;
+}
+
+.coframe-dmn .dmn-decision-table-container,
+.coframe-dmn .dmn-literal-expression-container,
+.coframe-dmn .dmn-boxed-expression-container {
+  --decision-table-font-family: var(--font-sans, system-ui);
+  --literal-expression-font-family: var(--font-sans, system-ui);
+  --literal-expression-font-family-monospace: var(--font-mono, ui-monospace);
+  --boxed-expression-font-family: var(--font-sans, system-ui);
+  --boxed-expression-font-family-monospace: var(--font-mono, ui-monospace);
+  --input-focus-box-shadow-inset-color: transparent;
+  --table-head-clause-color: var(--slate);
+  --table-head-variable-color: var(--slate);
+  --table-row-alternative-background-color: #fafafa;
+  --add-column-icon-background-color: var(--ink);
+  --action-icon-color: var(--slate);
+  --action-icon-hover-background-color: var(--fog);
+  --action-icon-hover-color: var(--ink);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.coframe-dmn .dmn-decision-table-container .tjs-table {
+  font-size: 13.5px;
+}
+
+.coframe-dmn .dmn-decision-table-container .decision-table-properties {
+  border-radius: 16px 16px 0 0;
+}
+
+.coframe-dmn .dmn-decision-table-container .decision-table-name,
+.coframe-dmn .dmn-literal-expression-container .decision-name {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.coframe-dmn .dmn-decision-table-container .decision-table-header,
+.coframe-dmn .dmn-decision-table-container .hit-policy {
+  color: var(--ink);
+}
+
+.coframe-dmn .dmn-decision-table-container .hit-policy .hit-policy-label,
+.coframe-dmn .dmn-decision-table-container .decision-table-properties label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate);
+}
+
+.coframe-dmn .dmn-decision-table-container th,
+.coframe-dmn .dmn-decision-table-container td {
+  border-color: var(--hairline);
+}
+
+.coframe-dmn .dmn-decision-table-container thead th {
+  background: #fafafa;
+}
+
+.coframe-dmn .dmn-decision-table-container thead .clause {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coframe-dmn .dmn-decision-table-container thead .input-label,
+.coframe-dmn .dmn-decision-table-container thead .output-label {
+  font-weight: 600;
+}
+
+.coframe-dmn .dmn-decision-table-container thead .input-expression,
+.coframe-dmn .dmn-decision-table-container thead .output-name,
+.coframe-dmn .dmn-decision-table-container thead .type-ref {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: 11.5px;
+  color: var(--slate);
+}
+
+.coframe-dmn .dmn-decision-table-container tbody td {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: 13px;
+}
+
+.coframe-dmn .dmn-decision-table-container tbody td.annotation,
+.coframe-dmn .dmn-decision-table-container tbody td.description-cell {
+  font-family: var(--font-sans, system-ui);
+}
+
+.coframe-dmn .dmn-decision-table-container tbody td.rule-index {
+  font-family: var(--font-sans, system-ui);
+  color: var(--slate);
+}
+
+.coframe-dmn .dmn-decision-table-container tbody td.focused,
+.coframe-dmn .dmn-decision-table-container tbody td.focussed {
+  box-shadow: inset 0 0 0 2px rgb(47 107 255 / 0.55);
+}
+
+.coframe-dmn .dmn-decision-table-container .context-menu {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font-sans, system-ui);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.coframe-dmn .dmn-decision-table-container .context-menu-group-entry {
+  border-radius: 8px;
+}
+
+.coframe-dmn .dmn-decision-table-container .context-menu-group-entry:hover {
+  background: var(--fog);
+}
+
+.coframe-dmn .dms-input,
+.coframe-dmn .dms-select,
+.coframe-dmn .dms-input-select .dms-input,
+.coframe-dmn textarea.dms-input {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--fog);
+  font-family: var(--font-sans, system-ui);
+  font-size: 13.5px;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.coframe-dmn .dms-input:focus,
+.coframe-dmn .dms-input.focussed,
+.coframe-dmn .dms-select:focus,
+.coframe-dmn .dms-input-select:focus-within .dms-input {
+  border-color: var(--cobalt);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgb(47 107 255 / 0.18);
+  outline: none;
+}
+
+.coframe-dmn .dms-select-options {
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  padding: 4px;
+  font-size: 13.5px;
+}
+
+.coframe-dmn .dms-select-options .option {
+  border-radius: 8px;
+}
+
+.coframe-dmn .dms-heading,
+.coframe-dmn .dms-label,
+.coframe-dmn .dms-input-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate);
+}
+
+.coframe-dmn .dms-hint {
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.coframe-dmn .dms-hrule {
+  border-color: var(--hairline);
+}
+
+.coframe-dmn .dmn-decision-table-container .context-menu a,
+.coframe-dmn .dms-list-component .remove {
+  color: var(--cobalt);
+  text-decoration: none;
+}
+
+.coframe-dmn .dmn-decision-table-container .edit-button {
+  border: 0;
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+}
+
+.coframe-dmn .dmn-decision-table-container .add-input,
+.coframe-dmn .dmn-decision-table-container .add-output {
+  box-shadow: 0 0 0 3px var(--paper);
+}
+
+.coframe-dmn .dmn-decision-table-container tfoot .add-rule-add {
+  color: var(--slate);
+}
+
+.coframe-dmn .dmn-decision-table-container tfoot td:hover .add-rule-add {
+  color: var(--ink);
+}
+
+.coframe-dmn .cm-editor {
+  font-family: var(--font-mono, ui-monospace);
+}
+
+.coframe-dmn .cm-editor.cm-focused {
+  outline: none;
+}
+
+.coframe-dmn .cm-editor .cm-tooltip,
+.coframe-dmn .cm-editor .cm-tooltip.cm-tooltip-autocomplete {
+  border: 0;
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.coframe-dmn .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
+  max-height: 260px;
+  padding: 4px;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: 12.5px;
+}
+
+.coframe-dmn .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  padding: 5px 8px;
+  border-radius: 8px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.coframe-dmn .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.coframe-dmn .cm-editor .cm-completionMatchedText {
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.coframe-dmn .cm-editor .cm-completionIcon {
+  opacity: 0.55;
+}
+
+.coframe-dmn .cm-editor .cm-tooltip.cm-completionInfo {
+  max-width: 360px;
+  padding: 12px 14px;
+  font-family: var(--font-sans, system-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3f3f46;
+}
+
+.coframe-dmn .cm-editor .cm-completionInfo h1,
+.coframe-dmn .cm-editor .cm-completionInfo h2,
+.coframe-dmn .cm-editor .cm-completionInfo h3,
+.coframe-dmn .cm-editor .cm-completionInfo h4,
+.coframe-dmn .cm-editor .cm-completionInfo strong,
+.coframe-dmn .cm-editor .cm-completionInfo b {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.coframe-dmn .cm-editor .cm-completionInfo p {
+  margin: 0 0 8px;
+}
+
+.coframe-dmn .cm-editor .cm-completionInfo pre,
+.coframe-dmn .cm-editor .cm-completionInfo code {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+}
+
+.coframe-dmn .cm-editor .cm-completionInfo pre {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--fog);
+}
