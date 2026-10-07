@@ -25,6 +25,7 @@ import { MetricsPanel } from "./views/metrics-panel";
 import { VIEWS, viewInfo, type ViewMode } from "./views/modes";
 import { PathsPanel } from "./views/paths-panel";
 import { PresentMode } from "./views/present-mode";
+import { SimulateDecisions } from "./views/simulate-decisions";
 import { RolesPanel } from "./views/roles-panel";
 import { ViewBanner } from "./views/view-banner";
 
@@ -174,6 +175,7 @@ export function PublicViewer({ token, embedded }: { token: string; embedded: boo
         />
       )}
       {editor && view === "paths" && <PathsPanel editor={editor} />}
+      {editor && view === "simulate" && <SimulateDecisions editor={editor} decisions={tables} />}
       {editor && view === "roles" && <RolesPanel editor={editor} readOnly />}
       {editor && view === "metrics" && <MetricsPanel editor={editor} readOnly />}
       {editor && data && view === "present" && (

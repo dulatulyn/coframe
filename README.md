@@ -52,9 +52,29 @@ joins, merges without synchronization, unlabeled decisions, misused message flow
 | **Time & cost** | Durations, costs and branch odds, an expected time and cost for the process, and a heatmap. |
 | **Present** | A full-screen, step-by-step walkthrough for meetings. |
 
+### Processes and decisions, finally together
+In most tools a BPMN process and its DMN decision tables are two unrelated files that happen to share a
+name. In Coframe a decision table belongs to its process:
+
+- **Create it from the task.** A business rule task gets its table in one click, named after the task and
+  linked to it. Rename the task and the table follows.
+- **Edit it beside the diagram.** The full dmn-js editor opens in a panel next to the process, so the rule
+  and the flow it drives are on screen together. Every table is still a real `.dmn` file you can open on
+  its own, download or restore from its history, and it is listed under its process in the files panel.
+- **Results meet branches.** Coframe reads which results the table can return and compares them with the
+  gateway after the task: it flags a result with no branch (the process would get stuck) and a branch the
+  table can never choose, labels branches from the results and adds the missing ones in one click.
+- **Try it.** Enter inputs, see which rule matches, what it returns and where the process goes next.
+- **Simulate with real decisions.** In the token simulation, enter the data once and each decision
+  picks its branch.
+- **One artifact.** Export a PDF with the diagram followed by every decision table it uses, share a
+  public link where viewers can open the tables, or present the process with each table on its step.
+- **Checked and reviewed together.** The exact checks and the AI review see the tables too: missing
+  tables, broken links, unhandled results, impossible branches and inputs the process never provides.
+
 ### More
 - **Decision tables (DMN 1.3)** with the full dmn-js editor (DRD, decision tables, literal and boxed
-  expressions). Business rule tasks link to their decision table.
+  expressions), also usable on their own.
 - **Process map.** Call activities link to other diagrams; the map shows how processes call each other.
 - **Sub-processes your way.** Expand one in place (the rest of the diagram makes room) or keep it on
   its own page with a clear way back.

@@ -45,6 +45,7 @@ import { VersionHistoryDialog } from "./ui/version-history";
 import type { ViewMode } from "./views/modes";
 import { MetricsPanel } from "./views/metrics-panel";
 import { PathsPanel } from "./views/paths-panel";
+import { SimulateDecisions } from "./views/simulate-decisions";
 import { PresentMode } from "./views/present-mode";
 import { RolesPanel } from "./views/roles-panel";
 import { ViewBanner } from "./views/view-banner";
@@ -384,6 +385,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
       {editor && !editing && view !== "present" && <ViewBanner mode={view} onExit={() => setView("edit")} />}
       {editor && view === "present" && <PresentMode editor={editor} title={diagram.name} onExit={() => setView("edit")} />}
       {editor && view === "paths" && <PathsPanel editor={editor} />}
+      {editor && view === "simulate" && <SimulateDecisions editor={editor} />}
       {editor && view === "roles" && <RolesPanel editor={editor} readOnly={readOnly} />}
       {editor && view === "metrics" && <MetricsPanel editor={editor} readOnly={readOnly} />}
       {editor && assistantOpen && editing && (
