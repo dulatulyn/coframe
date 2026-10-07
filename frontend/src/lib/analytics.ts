@@ -25,6 +25,7 @@ function gtag(...args: unknown[]): void {
 
 export function track(event: string, params: Params = {}): void {
   push({ event, ...params });
+  gtag("event", event, params);
 }
 
 const PAGE_TYPES: [RegExp, string][] = [
@@ -63,6 +64,13 @@ export function trackPage(pathname: string, title: string, embedded: boolean): v
     page_path: path,
     page_location: `${window.location.origin}${path}`,
     page_title: title,
+    embedded,
+  });
+  gtag("event", "page_view", {
+    page_location: `${window.location.origin}${path}`,
+    page_path: path,
+    page_title: title,
+    page_type: pageType(pathname),
     embedded,
   });
 }

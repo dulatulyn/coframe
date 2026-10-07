@@ -134,9 +134,10 @@ estimated price; once `AI_MONTHLY_BUDGET_USD` is reached all AI calls stop for t
 per-user limits apply (`AI_DAILY_REVIEWS`, `AI_DAILY_MESSAGES`, `AI_DAILY_SUGGESTIONS`,
 `AI_DAILY_GENERATIONS`).
 
-**Analytics:** production builds load Google Tag Manager (`NEXT_PUBLIC_GTM_ID`) with Consent Mode v2:
+**Analytics:** production builds load Google Analytics 4 (`NEXT_PUBLIC_GA_ID`) and Google Tag Manager
+(`NEXT_PUBLIC_GTM_ID`) with Consent Mode v2:
 nothing is stored until a visitor allows it. Page views are sent as `coframe_page_view` with a page
-type and a path where ids and access tokens are replaced by placeholders, and product events
+type and a path where ids and access tokens are replaced by placeholders (also as GA4 `page_view`), and product events
 (`sign_up`, `login`, `guest_start`, `diagram_create`, `jam_start`, `jam_join`, `ai_command`,
 `view_open`, `export`, …) go to the data layer. Diagram content is never sent.
 
