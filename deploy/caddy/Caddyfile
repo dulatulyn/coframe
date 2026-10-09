@@ -17,3 +17,7 @@ www.{$DOMAIN} {
 http://{$PUBLIC_IP} {
 	redir https://{$DOMAIN}{uri} permanent
 }
+
+# Other apps on this VM (e.g. whisper_bro at protocol-agi.xyz) drop their own site blocks into the caddy_config
+# volume, so they share ports 80/443 without changing coframe. An empty glob is valid; keep this line.
+import /config/sites.d/*.caddy
