@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { APP_NAME } from "@/config/brand";
 import { usePublicDiagram } from "@/lib/api/hooks";
+import { parseDmn } from "@/lib/dmn";
 import { cn } from "@/lib/utils";
 
 import { zoomBy, zoomToFit } from "./actions";
@@ -38,7 +39,14 @@ export function PublicViewer({ token, embedded }: { token: string; embedded: boo
   const [decisionFor, setDecisionFor] = useState<string | null>(null);
   const [changes, setChanges] = useState(0);
   const tables = useMemo(() => new Map((data?.decisions ?? []).map((d) => [d.id, d])), [data]);
-  const tableNames = useMemo(() => new Map((data?.decisions ?? []).map((d) => [d.id, d.name])), [data]);
+  const tableNames = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const table of data?.decisions ?? []) {
+      out.set(table.id, table.name);
+      for (const decision of parseDmn(table.xml)) out.set(`${table.id}#${decision.id}`, decision.name || decision.id);
+    }
+    return out;
+  }, [data]);
 
   useEffect(() => {
     if (!data || !canvasRef.current) return;

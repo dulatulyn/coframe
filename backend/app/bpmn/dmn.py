@@ -31,6 +31,7 @@ class Decision:
     inputs: list[DecisionInput]
     outputs: list[DecisionOutput]
     rules: list[tuple[list[str], list[str]]]
+    requires: list[str] = field(default_factory=list)
 
 
 LITERAL = re.compile(r'^\s*(?:"((?:[^"\\]|\\.)*)"|(-?\d+(?:\.\d+)?)|(true|false))\s*$')
@@ -72,6 +73,16 @@ def _decisions(root: etree._Element) -> list[etree._Element]:
     ]
 
 
+def _requires(element: etree._Element) -> list[str]:
+    ids = []
+    for requirement in _children(element, "informationRequirement"):
+        for required in _children(requirement, "requiredDecision"):
+            href = (required.get("href") or "").lstrip("#")
+            if href and href not in ids:
+                ids.append(href)
+    return ids
+
+
 def parse_decisions(xml: str) -> list[Decision]:
     try:
         root = parse_dmn(xml)
@@ -81,7 +92,11 @@ def parse_decisions(xml: str) -> list[Decision]:
     for element in _decisions(root):
         tables = _children(element, "decisionTable")
         if not tables:
-            result.append(Decision(element.get("id", ""), element.get("name", "").strip(), "", [], [], []))
+            result.append(
+                Decision(
+                    element.get("id", ""), element.get("name", "").strip(), "", [], [], [], _requires(element)
+                )
+            )
             continue
         table = tables[0]
         inputs = []
@@ -135,6 +150,7 @@ def parse_decisions(xml: str) -> list[Decision]:
                 inputs=inputs,
                 outputs=outputs,
                 rules=rules,
+                requires=_requires(element),
             )
         )
     return result
@@ -153,8 +169,10 @@ def rename_single_decision(xml: str, name: str) -> str | None:
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
 
-def describe_decision(decision: Decision) -> str:
+def describe_decision(decision: Decision, required: list[str] | None = None) -> str:
     lines = [f'Decision "{decision.name or decision.id}" (hit policy {decision.hit_policy or "-"})']
+    if required:
+        lines.append(f"  uses the results of: {', '.join(required)}")
     for item in decision.inputs:
         lines.append(
             f"  input: {item.label or item.expression} = {item.expression or '?'} ({item.type_ref or 'any'})"

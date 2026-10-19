@@ -3,12 +3,13 @@
 import { FlaskConical, Table2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { parseDmn, pickDecision } from "@/lib/dmn";
+import { linkedDecision, parseDmn } from "@/lib/dmn";
 import { cn } from "@/lib/utils";
 
 import { service, type BpmnEditor } from "../modeler";
 import { TryIt } from "./decision-panel";
 import { DecisionTableView } from "./decision-table-view";
+import { linkedDecisionRef } from "./link";
 
 export function DecisionPreview({
   editor,
@@ -29,7 +30,7 @@ export function DecisionPreview({
   const task = service(editor, "elementRegistry").get(taskId);
   const taskName: string = task?.businessObject?.name ?? "";
   const decisions = useMemo(() => (xml ? parseDmn(xml) : []), [xml]);
-  const main = pickDecision(decisions, taskName);
+  const main = linkedDecision(decisions, taskName, task ? linkedDecisionRef(task) : null);
   return (
     <aside data-decision-panel className={cn("flex flex-col overflow-hidden", className)}>
       <header className="flex items-start gap-3 border-b border-hairline px-4 py-3">
@@ -64,7 +65,7 @@ export function DecisionPreview({
         </div>
       )}
       {tab === "try" && main && task ? (
-        <TryIt decision={main} task={task} />
+        <TryIt decisions={decisions} decision={main} task={task} />
       ) : (
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           {!xml && <p className="text-[13px] text-slate">This decision table isn&apos;t available.</p>}

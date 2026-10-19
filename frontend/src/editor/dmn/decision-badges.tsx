@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { service, type BpmnEditor } from "../modeler";
-import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId } from "./link";
+import { badgeKey, DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId } from "./link";
 
 type Element = any;
 
@@ -35,7 +35,7 @@ export function DecisionBadges({
       const html = document.createElement("button");
       html.type = "button";
       html.className = linked ? "coframe-decision-badge" : "coframe-decision-badge is-missing";
-      html.innerHTML = linked ? `${TABLE_ICON}<span>${escape(names.get(linked) ?? "Table")}</span>` : `${PLUS_ICON}<span>Decision</span>`;
+      html.innerHTML = linked ? `${TABLE_ICON}<span>${escape(names.get(badgeKey(task)) ?? names.get(linked) ?? "Table")}</span>` : `${PLUS_ICON}<span>Decision</span>`;
       html.title = linked ? "Open the decision table" : "Create a decision table for this task";
       html.addEventListener("click", (e) => {
         e.stopPropagation();

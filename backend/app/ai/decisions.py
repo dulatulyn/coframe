@@ -1,4 +1,5 @@
 import re
+from collections import deque
 from dataclasses import dataclass
 
 from app.ai.checks import Finding
@@ -27,6 +28,8 @@ def branch_values(name: str, condition: str) -> set[str]:
 
 
 def pick_decision(task: Node, table: LinkedTable) -> Decision | None:
+    if task.decision_ref:
+        return next((d for d in table.decisions if d.id == task.decision_ref), None)
     usable = [d for d in table.decisions if d.outputs]
     if not usable:
         return None
@@ -47,8 +50,90 @@ def primary_output(decision: Decision) -> DecisionOutput | None:
     return next((o for o in decision.outputs if o.values), decision.outputs[0] if decision.outputs else None)
 
 
+def required_chain(decision: Decision, table: LinkedTable, stop: set[str] | None = None) -> list[Decision]:
+    by_id = {d.id: d for d in table.decisions}
+    seen: set[str] = {decision.id}
+    queue = deque(decision.requires)
+    chain = []
+    while queue:
+        rid = queue.popleft()
+        if rid in seen or rid not in by_id:
+            continue
+        seen.add(rid)
+        chain.append(by_id[rid])
+        if stop is None or rid not in stop:
+            queue.extend(by_id[rid].requires)
+    return chain
+
+
+def provided_names(chain: list[Decision]) -> set[str]:
+    names = set()
+    for decision in chain:
+        names |= {normalize(n) for n in [decision.name, *(o.name for o in decision.outputs)] if n}
+    return names
+
+
+def reachable_from(graph: Graph, start: str) -> set[str]:
+    seen: set[str] = set()
+    queue = deque([start])
+    while queue:
+        node = graph.nodes.get(queue.popleft())
+        if node is None:
+            continue
+        targets = [graph.flows[f].target for f in node.outgoing if f in graph.flows]
+        targets += [n.id for n in graph.nodes.values() if n.attached_to == node.id]
+        for target in targets:
+            if target not in seen:
+                seen.add(target)
+                queue.append(target)
+    return seen
+
+
+def computed_decisions(
+    graph: Graph, tables: dict[str, LinkedTable]
+) -> tuple[dict[tuple[str, str], list[Node]], list[tuple[Node, LinkedTable, Decision]]]:
+    computed: dict[tuple[str, str], list[Node]] = {}
+    picked: list[tuple[Node, LinkedTable, Decision]] = []
+    for task in graph.nodes.values():
+        if task.kind != "businessRuleTask" or not task.decision or task.decision not in tables:
+            continue
+        table = tables[task.decision]
+        decision = pick_decision(task, table)
+        if decision is None:
+            continue
+        computed.setdefault((task.decision, decision.id), []).append(task)
+        picked.append((task, table, decision))
+    return computed, picked
+
+
+def order_findings(graph: Graph, tables: dict[str, LinkedTable]) -> list[Finding]:
+    computed, picked = computed_decisions(graph, tables)
+    findings = []
+    for task, table, decision in picked:
+        by_id = {d.id: d for d in table.decisions}
+        for rid in decision.requires:
+            earlier = computed.get((table.diagram_id, rid), [])
+            if not earlier or rid not in by_id:
+                continue
+            if any(task.id in reachable_from(graph, other.id) for other in earlier):
+                continue
+            required = by_id[rid]
+            findings.append(
+                Finding(
+                    "decision-order",
+                    "warning",
+                    f'"{decision.name or decision.id}" in {task.label} uses the result of '
+                    f'"{required.name or required.id}", but {earlier[0].label}, which decides it, '
+                    "does not come before it in the process.",
+                    [task.id, *(t.id for t in earlier)],
+                )
+            )
+    return findings
+
+
 def decision_findings(graph: Graph, tables: dict[str, LinkedTable]) -> list[Finding]:
-    findings: list[Finding] = []
+    findings: list[Finding] = order_findings(graph, tables)
+    computed, _ = computed_decisions(graph, tables)
     for task in graph.nodes.values():
         if task.kind != "businessRuleTask":
             continue
@@ -75,6 +160,15 @@ def decision_findings(graph: Graph, tables: dict[str, LinkedTable]) -> list[Find
             continue
         decision = pick_decision(task, table)
         if decision is None:
+            if task.decision_ref:
+                findings.append(
+                    Finding(
+                        "decision-ref-broken",
+                        "error",
+                        f'Business rule task {task.label} points to a decision that is no longer in "{table.name}".',
+                        [task.id],
+                    )
+                )
             continue
         output = primary_output(decision)
         gateway = routing_gateway(graph, task)
@@ -116,7 +210,12 @@ def decision_findings(graph: Graph, tables: dict[str, LinkedTable]) -> list[Find
                             [gateway.id, flow.id],
                         )
                     )
-        elif output and len(output.values) > 1 and gateway is None:
+        elif (
+            output
+            and len(output.values) > 1
+            and gateway is None
+            and not any(decision.id in d.requires for d in table.decisions)
+        ):
             findings.append(
                 Finding(
                     "decision-not-routed",
@@ -126,7 +225,16 @@ def decision_findings(graph: Graph, tables: dict[str, LinkedTable]) -> list[Find
                     [task.id],
                 )
             )
-        needed = [i.label or i.expression for i in decision.inputs if (i.label or i.expression)]
+        elsewhere = {
+            rid for (tid, rid), owners in computed.items() if tid == table.diagram_id and task not in owners
+        }
+        chain = required_chain(decision, table, elsewhere)
+        inner = provided_names(chain)
+        needed = []
+        for item in [i for d in [decision, *(c for c in chain if c.id not in elsewhere)] for i in d.inputs]:
+            label = item.label or item.expression
+            if label and normalize(item.expression) not in inner and label not in needed:
+                needed.append(label)
         if not needed:
             continue
         provided = [
@@ -166,6 +274,10 @@ def decisions_text(graph: Graph, tables: dict[str, LinkedTable]) -> str:
         if task.kind != "businessRuleTask" or not task.decision or task.decision not in tables:
             continue
         table = tables[task.decision]
-        for decision in table.decisions:
-            parts.append(f"{task.id} {task.label} uses:\n{describe_decision(decision)}")
+        decision = pick_decision(task, table)
+        shown = [decision, *required_chain(decision, table)] if decision else table.decisions
+        by_id = {d.id: d for d in table.decisions}
+        for item in shown:
+            required = [by_id[r].name or r for r in item.requires if r in by_id]
+            parts.append(f"{task.id} {task.label} uses:\n{describe_decision(item, required)}")
     return "\n\n".join(parts)

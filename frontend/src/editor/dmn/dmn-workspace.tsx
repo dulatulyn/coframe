@@ -42,16 +42,30 @@ export function useDiagramXml(diagramId: string | null) {
   });
 }
 
+const LINKED = "coframe-linked";
+
+function markLinked(instance: any, id: string | null) {
+  if (instance.getActiveView()?.type !== "drd") return;
+  const viewer = instance.getActiveViewer();
+  const canvas = viewer?.get("canvas");
+  const registry = viewer?.get("elementRegistry");
+  if (!canvas || !registry) return;
+  registry.forEach((element: { id: string }) => canvas.removeMarker(element.id, LINKED));
+  if (id && registry.get(id)) canvas.addMarker(id, LINKED);
+}
+
 export function DmnWorkspace({
   diagramId,
   readOnly,
   onState,
   onXml,
+  focus,
   className,
   ref,
 }: {
   diagramId: string;
   readOnly: boolean;
+  focus?: string | null;
   onState?: (state: DmnState) => void;
   onXml?: (xml: string) => void;
   className?: string;
@@ -70,8 +84,10 @@ export function DmnWorkspace({
   const qc = useQueryClient();
   const content = useDiagramXml(diagramId);
   const callbacks = useRef({ onState, onXml });
+  const focusRef = useRef(focus ?? null);
   useEffect(() => {
     callbacks.current = { onState, onXml };
+    focusRef.current = focus ?? null;
   });
 
   const report = useCallback((patch: Partial<DmnState>) => {
@@ -130,6 +146,7 @@ export function DmnWorkspace({
         setViews(next);
         setActive(activeView);
         bindActive();
+        markLinked(instance, focusRef.current);
       });
       setReady(true);
     })().catch(() => !disposed && setFailed(true));
@@ -157,6 +174,15 @@ export function DmnWorkspace({
       callbacks.current.onXml?.(xml);
     })().catch(() => setFailed(true));
   }, [content.data, ready]);
+
+  useEffect(() => {
+    const instance = modeler.current;
+    if (!instance || !ready) return;
+    markLinked(instance, focus ?? null);
+    const target = (instance.getViews() as View[]).find((v) => v.element.id === focus && v.type !== "drd");
+    const current = instance.getActiveView();
+    if (target && current?.type !== "drd" && current?.element?.id !== focus) void instance.open(target);
+  }, [focus, ready]);
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {

@@ -23,7 +23,10 @@ export const COFRAME_MODDLE = {
     {
       name: "Link",
       extends: ["bpmn:CallActivity", "bpmn:BusinessRuleTask"],
-      properties: [{ name: "diagram", isAttr: true, type: "String" }],
+      properties: [
+        { name: "diagram", isAttr: true, type: "String" },
+        { name: "decision", isAttr: true, type: "String" },
+      ],
     },
   ],
 };

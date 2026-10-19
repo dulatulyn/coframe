@@ -1,20 +1,25 @@
 "use client";
 
+import { useQueries } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 import { errorMessage } from "@/lib/api/client";
 import { useCreateDiagram, useTree, useUpdateDiagram } from "@/lib/api/hooks";
 import type { Diagram, Project } from "@/lib/api/types";
+import { parseDmn } from "@/lib/dmn";
 
 import { service, type BpmnEditor } from "../modeler";
 import { DecisionBadges } from "./decision-badges";
 import { DecisionPanel } from "./decision-panel";
-import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId } from "./link";
+import { fetchDiagramXml } from "./dmn-workspace";
+import { DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, isRuleTask, linkedDecisionId, linkedDecisionRef } from "./link";
 
 type Element = any;
 
 const RENAME_DELAY_MS = 900;
+
+const dataOf = (results: { data?: string }[]) => results.map((r) => r.data ?? null);
 
 export function DecisionLayer({
   editor,
@@ -44,6 +49,27 @@ export function DecisionLayer({
     () => new Map((tree?.diagrams ?? []).filter((d) => d.kind === "dmn").map((d) => [d.id, d.name])),
     [tree],
   );
+  const refFiles = useMemo(() => {
+    void version;
+    const ids = service(editor, "elementRegistry")
+      .filter((e: Element) => isRuleTask(e) && linkedDecisionRef(e))
+      .map((e: Element) => linkedDecisionId(e))
+      .filter(Boolean) as string[];
+    return [...new Set(ids)].sort();
+  }, [editor, version]);
+  const xmls = useQueries({
+    queries: refFiles.map((id) => ({ queryKey: ["content", id], queryFn: () => fetchDiagramXml(id), refetchOnWindowFocus: false })),
+    combine: dataOf,
+  });
+  const labels = useMemo(() => {
+    const out = new Map(names);
+    refFiles.forEach((id, i) => {
+      const xml = xmls[i];
+      if (!xml) return;
+      for (const decision of parseDmn(xml)) out.set(`${id}#${decision.id}`, decision.name || decision.id);
+    });
+    return out;
+  }, [names, refFiles, xmls]);
   const handlers = useRef<{ onOpen: (taskId: string) => void; create: (task: Element) => Promise<void> }>({
     onOpen,
     create: async () => {},
@@ -98,7 +124,7 @@ export function DecisionLayer({
       const next = new Map<string, string>();
       registry.filter(isRuleTask).forEach((task: Element) => {
         const linked = linkedDecisionId(task);
-        if (linked) next.set(task.id, `${linked}|${task.businessObject?.name ?? ""}`);
+        if (linked && !linkedDecisionRef(task)) next.set(task.id, `${linked}|${task.businessObject?.name ?? ""}`);
       });
       return next;
     };
@@ -151,7 +177,7 @@ export function DecisionLayer({
 
   return (
     <>
-      <DecisionBadges editor={editor} readOnly={readOnly} version={version} names={names} />
+      <DecisionBadges editor={editor} readOnly={readOnly} version={version} names={labels} />
       {openTask && (
         <DecisionPanel
           key={`${openTask}:${tableId}`}

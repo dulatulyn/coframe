@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { service, type BpmnEditor } from "../modeler";
-import { parseDmn, pickDecision } from "@/lib/dmn";
+import { linkedDecision, parseDmn } from "@/lib/dmn";
 
 import { DecisionTableView } from "../dmn/decision-table-view";
 import { useDiagramXml } from "../dmn/dmn-workspace";
-import { isRuleTask, linkedDecisionId } from "../dmn/link";
+import { isRuleTask, linkedDecisionId, linkedDecisionRef } from "../dmn/link";
 import { describe } from "../ui/element-info";
 import { formatAmount, formatDuration, parseAmount, parseDuration } from "./metrics";
 import { readNodes, type FlowNode } from "./paths";
@@ -84,10 +84,10 @@ function roleOf(editor: BpmnEditor, element: Element): string | null {
   return null;
 }
 
-function StepDecision({ tableId, taskName, known }: { tableId: string; taskName: string; known?: string }) {
+function StepDecision({ tableId, taskName, decisionRef, known }: { tableId: string; taskName: string; decisionRef: string | null; known?: string }) {
   const fetched = useDiagramXml(known === undefined ? tableId : null);
   const xml = known ?? fetched.data ?? null;
-  const decision = useMemo(() => (xml ? pickDecision(parseDmn(xml), taskName) : null), [xml, taskName]);
+  const decision = useMemo(() => (xml ? linkedDecision(parseDmn(xml), taskName, decisionRef) : null), [xml, taskName, decisionRef]);
   if (!decision) return null;
   return (
     <div className="mt-3 max-h-56 overflow-y-auto">
@@ -197,6 +197,7 @@ export function PresentMode({
                     key={linkedDecisionId(step.element)!}
                     tableId={linkedDecisionId(step.element)!}
                     taskName={bo?.name ?? ""}
+                    decisionRef={linkedDecisionRef(step.element)}
                     known={decisions ? decisions.get(linkedDecisionId(step.element)!)?.xml ?? "" : undefined}
                   />
                 )}

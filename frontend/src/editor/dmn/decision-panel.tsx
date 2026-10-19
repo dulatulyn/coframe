@@ -6,14 +6,14 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { DiagramMeta } from "@/lib/api/types";
-import { evaluateDecision, inputLabel, outputKey, parseDmn, pickDecision, primaryOutput, type Decision } from "@/lib/dmn";
+import { chainInputs, evaluateChain, linkedDecision, outputKey, parseDmn, primaryOutput, type Decision } from "@/lib/dmn";
 import { cn } from "@/lib/utils";
 
 import { applyOps, focusElements } from "../ai/apply";
 import { service, type BpmnEditor } from "../modeler";
 import { DecisionTableView } from "./decision-table-view";
 import { DmnWorkspace, useDiagramXml } from "./dmn-workspace";
-import { addBranchOps, addGatewayOps, branchValues, consistency, labelOps } from "./link";
+import { addBranchOps, addGatewayOps, branchValues, consistency, labelOps, linkedDecisionRef } from "./link";
 
 type Element = any;
 
@@ -47,8 +47,10 @@ export function DecisionPanel({
   const xml = liveXml ?? stored.data ?? null;
   const task = service(editor, "elementRegistry").get(taskId);
   const taskName: string = task?.businessObject?.name ?? "";
+  const ref = task ? linkedDecisionRef(task) : null;
 
-  const decision: Decision | null = useMemo(() => (xml ? pickDecision(parseDmn(xml), taskName) : null), [xml, taskName]);
+  const decisions = useMemo(() => (xml ? parseDmn(xml) : []), [xml]);
+  const decision: Decision | null = useMemo(() => linkedDecision(decisions, taskName, ref), [decisions, taskName, ref]);
   const status = useMemo(() => {
     void version;
     return task ? consistency(task, decision) : null;
@@ -81,8 +83,10 @@ export function DecisionPanel({
           <Table2 className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold">{table.name}</p>
-          <p className="truncate text-[12px] text-slate">Decision table of “{taskName || "business rule task"}”</p>
+          <p className="truncate text-[15px] font-semibold">{decisions.length > 1 && decision ? decision.name || decision.id : table.name}</p>
+          <p className="truncate text-[12px] text-slate">
+            {decisions.length > 1 ? `In “${table.name}”, used by “${taskName || "business rule task"}”` : `Decision table of “${taskName || "business rule task"}”`}
+          </p>
         </div>
         <Button asChild variant="ghost" size="sm" className="h-8">
           <Link href={`/p/${projectId}/${table.id}`}>
@@ -93,6 +97,13 @@ export function DecisionPanel({
           <X className="size-4" />
         </button>
       </header>
+
+      {ref && xml && !decision && (
+        <p className="flex items-center gap-1.5 border-b border-hairline px-4 py-3 text-[13px] text-[#8a5a00]">
+          <AlertTriangle className="size-3.5 shrink-0" /> The decision this task uses was removed from “{table.name}”. Pick another one in the
+          task&apos;s properties.
+        </p>
+      )}
 
       {status && output && (
         <section className="space-y-2 border-b border-hairline px-4 py-3 text-[13px]">
@@ -228,16 +239,23 @@ export function DecisionPanel({
       </div>
 
       <div className={cn("min-h-0 flex-1", tab === "edit" ? "flex" : "hidden")}>
-        <DmnWorkspace diagramId={table.id} readOnly={readOnly} onXml={setLiveXml} className="mt-2 flex-1" />
+        <DmnWorkspace diagramId={table.id} readOnly={readOnly} onXml={setLiveXml} focus={decision?.id ?? null} className="mt-2 flex-1" />
       </div>
-      {tab === "try" && decision && <TryIt decision={decision} task={task} />}
+      {tab === "try" && decision && <TryIt decisions={decisions} decision={decision} task={task} />}
     </aside>
   );
 }
 
-export function TryIt({ decision, task }: { decision: Decision; task: Element }) {
-  const [values, setValues] = useState<string[]>(() => decision.inputs.map(() => ""));
-  const result = useMemo(() => evaluateDecision(decision, values), [decision, values]);
+function show(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+export function TryIt({ decisions, decision, task }: { decisions: Decision[]; decision: Decision; task: Element }) {
+  const inputs = useMemo(() => chainInputs(decisions, decision), [decisions, decision]);
+  const [values, setValues] = useState<Record<string, string>>({});
+  const chain = useMemo(() => evaluateChain(decisions, decision, values), [decisions, decision, values]);
+  const result = chain.result;
+  const steps = chain.steps.slice(0, -1);
   const output = primaryOutput(decision);
   const status = consistency(task, decision);
   const first = result.results[0];
@@ -250,19 +268,36 @@ export function TryIt({ decision, task }: { decision: Decision; task: Element })
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
       <div className="grid gap-2 sm:grid-cols-2">
-        {decision.inputs.map((input, i) => (
-          <label key={input.id || i} className="flex flex-col gap-1 text-[12px] font-medium text-slate">
-            {inputLabel(input)}
+        {inputs.map((input) => (
+          <label key={input.key} className="flex flex-col gap-1 text-[12px] font-medium text-slate">
+            {input.label}
             {input.typeRef && <span className="font-normal">{input.typeRef}</span>}
             <input
-              value={values[i] ?? ""}
-              onChange={(e) => setValues(values.map((v, j) => (j === i ? e.target.value : v)))}
+              value={values[input.key] ?? ""}
+              onChange={(e) => setValues({ ...values, [input.key]: e.target.value })}
               placeholder={input.typeRef === "number" ? "e.g. 1500" : input.typeRef === "boolean" ? "true / false" : "value"}
               className="h-9 rounded-xl bg-fog px-3 text-[14px] font-normal text-ink outline-none focus:ring-2 focus:ring-cobalt/30"
             />
           </label>
         ))}
       </div>
+      {steps.length > 0 && (
+        <ol className="space-y-1 rounded-2xl border border-hairline px-3 py-2.5 text-[13px]">
+          <li className="text-[12px] font-medium text-slate">Decided first</li>
+          {steps.map((step) => (
+            <li key={step.decision.id} className="flex flex-wrap items-center gap-1.5">
+              <span className="font-medium">{step.decision.name || step.decision.id}</span>
+              <ArrowRight className="size-3 text-slate" />
+              {step.evaluation.results.length ? (
+                <span className="font-mono text-[12.5px]">{show(step.value)}</span>
+              ) : (
+                <span className="text-[#8a5a00]">no result</span>
+              )}
+              {step.evaluation.matched.length > 0 && <span className="text-slate">rule {step.evaluation.matched[0] + 1}</span>}
+            </li>
+          ))}
+        </ol>
+      )}
       <div className="rounded-2xl bg-fog px-3 py-2.5 text-[13px]">
         {result.matched.length === 0 ? (
           <p className="text-[#8a5a00]">No rule matches these inputs, so the decision has no result.</p>
@@ -274,7 +309,7 @@ export function TryIt({ decision, task }: { decision: Decision; task: Element })
                 <span key={i} className="font-semibold">
                   {i > 0 && "; "}
                   {Object.entries(r)
-                    .map(([k, v]) => `${k} = ${typeof v === "string" ? v : JSON.stringify(v)}`)
+                    .map(([k, v]) => `${k} = ${show(v)}`)
                     .join(", ")}
                 </span>
               ))}
@@ -290,7 +325,7 @@ export function TryIt({ decision, task }: { decision: Decision; task: Element })
             )}
           </>
         )}
-        {result.warnings.map((w) => (
+        {chain.steps.flatMap((s) => s.evaluation.warnings).map((w) => (
           <p key={w} className="mt-1 text-[12px] text-[#8a5a00]">
             {w}
           </p>

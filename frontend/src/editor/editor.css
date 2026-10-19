@@ -759,3 +759,9 @@
   border-radius: 8px;
   background: var(--fog);
 }
+
+.coframe-dmn .djs-element.coframe-linked .djs-visual > rect {
+  stroke: var(--cobalt) !important;
+  stroke-width: 3px !important;
+  fill: color-mix(in srgb, var(--cobalt) 8%, var(--paper)) !important;
+}

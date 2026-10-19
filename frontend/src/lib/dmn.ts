@@ -13,6 +13,7 @@ export type Decision = {
   rules: DecisionRule[];
   kind: "table" | "literal" | "other";
   literal: string;
+  requires: string[];
 };
 
 const DMN_NS = [
@@ -45,12 +46,23 @@ export function literalValues(source: string): string[] | null {
   return out;
 }
 
+function requirements(el: Element): string[] {
+  const ids: string[] = [];
+  for (const requirement of children(el, "informationRequirement")) {
+    for (const required of children(requirement, "requiredDecision")) {
+      const href = (required.getAttribute("href") ?? "").replace(/^#/, "");
+      if (href && !ids.includes(href)) ids.push(href);
+    }
+  }
+  return ids;
+}
+
 export function parseDmn(xml: string): Decision[] {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   const root = doc.documentElement;
   if (!root || root.localName !== "definitions" || !DMN_NS.includes(root.namespaceURI ?? "")) return [];
   return children(root, "decision").map((el) => {
-    const base = { id: el.getAttribute("id") ?? "", name: (el.getAttribute("name") ?? "").trim() };
+    const base = { id: el.getAttribute("id") ?? "", name: (el.getAttribute("name") ?? "").trim(), requires: requirements(el) };
     const table = children(el, "decisionTable")[0];
     const literal = children(el, "literalExpression")[0];
     if (!table) {
@@ -122,6 +134,11 @@ export function pickDecision(decisions: Decision[], name: string): Decision | nu
   return tables.find((d) => normalize(d.name) === normalize(name)) ?? tables[0];
 }
 
+export function linkedDecision(decisions: Decision[], name: string, ref: string | null): Decision | null {
+  if (ref) return decisions.find((d) => d.id === ref) ?? null;
+  return pickDecision(decisions, name);
+}
+
 export function primaryOutput(decision: Decision): DecisionOutput | null {
   return decision.outputs.find((o) => o.values.length) ?? decision.outputs[0] ?? null;
 }
@@ -166,7 +183,13 @@ function contextFor(decision: Decision, values: unknown[]): Record<string, unkno
 }
 
 export function evaluateDecision(decision: Decision, raw: string[]): Evaluation {
-  const values = decision.inputs.map((input, i) => coerce(raw[i] ?? "", input.typeRef));
+  return evaluateValues(
+    decision,
+    decision.inputs.map((input, i) => coerce(raw[i] ?? "", input.typeRef)),
+  );
+}
+
+function evaluateValues(decision: Decision, values: unknown[]): Evaluation {
   const context = contextFor(decision, values);
   const warnings: string[] = [];
   const matched: number[] = [];
@@ -209,4 +232,83 @@ export function evaluateDecision(decision: Decision, raw: string[]): Evaluation 
 export function outputKey(decision: Decision, output: DecisionOutput): string {
   const index = decision.outputs.indexOf(output);
   return output.name || output.label || `output${index + 1}`;
+}
+
+export function inputKey(input: DecisionInput): string {
+  return input.expression.trim() || input.label.trim() || input.id;
+}
+
+export function requiredChain(decisions: Decision[], target: Decision): Decision[] {
+  const byId = new Map(decisions.map((d) => [d.id, d]));
+  const order: Decision[] = [];
+  const seen = new Set<string>();
+  const visit = (decision: Decision) => {
+    if (seen.has(decision.id)) return;
+    seen.add(decision.id);
+    for (const id of decision.requires) {
+      const required = byId.get(id);
+      if (required) visit(required);
+    }
+    order.push(decision);
+  };
+  visit(target);
+  return order;
+}
+
+function resultNames(decision: Decision): string[] {
+  return [decision.name, ...decision.outputs.map((o) => o.name)].filter(Boolean);
+}
+
+export type ChainInput = { key: string; label: string; typeRef: string };
+
+export function chainInputs(decisions: Decision[], target: Decision): ChainInput[] {
+  const chain = requiredChain(decisions, target);
+  const inner = new Set(chain.slice(0, -1).flatMap(resultNames));
+  const out: ChainInput[] = [];
+  for (const decision of chain) {
+    for (const input of decision.inputs) {
+      const key = inputKey(input);
+      if (inner.has(key) || out.some((i) => i.key === key)) continue;
+      out.push({ key, label: inputLabel(input), typeRef: input.typeRef });
+    }
+  }
+  return out;
+}
+
+export type ChainStep = { decision: Decision; evaluation: Evaluation; value: unknown };
+
+export type ChainEvaluation = { steps: ChainStep[]; result: Evaluation };
+
+export function evaluateChain(decisions: Decision[], target: Decision, raw: Record<string, string>): ChainEvaluation {
+  const known = new Map<string, unknown>();
+  const steps: ChainStep[] = [];
+  for (const decision of requiredChain(decisions, target)) {
+    let evaluation: Evaluation;
+    let value: unknown = null;
+    if (decision.kind === "literal") {
+      const context = Object.fromEntries(known);
+      for (const [key, text] of Object.entries(raw)) if (!(key in context)) context[key] = coerce(text, "");
+      try {
+        value = evaluate(decision.literal, context).value;
+        evaluation = { matched: [], results: [{ [decision.name]: value }], warnings: [] };
+      } catch {
+        evaluation = { matched: [], results: [], warnings: [`"${decision.name}" could not be evaluated.`] };
+      }
+    } else {
+      const values = decision.inputs.map((input) => {
+        const key = inputKey(input);
+        return known.has(key) ? known.get(key) : coerce(raw[key] ?? "", input.typeRef);
+      });
+      evaluation = evaluateValues(decision, values);
+      const first = evaluation.results[0];
+      if (first) {
+        for (const [name, result] of Object.entries(first)) known.set(name, result);
+        const entries = Object.values(first);
+        value = entries.length === 1 ? entries[0] : first;
+      }
+    }
+    if (decision.name) known.set(decision.name, value);
+    steps.push({ decision, evaluation, value });
+  }
+  return { steps, result: steps[steps.length - 1].evaluation };
 }

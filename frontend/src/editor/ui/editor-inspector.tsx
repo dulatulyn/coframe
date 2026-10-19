@@ -2,14 +2,16 @@
 
 import { ArrowLeftRight, Copy, ExternalLink, Plus, Table2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Glyph } from "@/components/bpmn/glyphs";
 import { useTree } from "@/lib/api/hooks";
+import { parseDmn } from "@/lib/dmn";
 import { cn } from "@/lib/utils";
 
-import { addDecisionTable, canBecomeRuleTask, DECISION_CREATE_EVENT, DECISION_OPEN_EVENT } from "../dmn/link";
+import { useDiagramXml } from "../dmn/dmn-workspace";
+import { addDecisionTable, canBecomeRuleTask, DECISION_CREATE_EVENT, DECISION_OPEN_EVENT, linkedDecisionRef } from "../dmn/link";
 import { service, type BpmnEditor } from "../modeler";
 import { isCollapsedSubProcess, isExpandedSubProcess, toggleSubProcess } from "../subprocess";
 import { COLORS, describe, isActivity } from "./element-info";
@@ -46,6 +48,34 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function DecisionPicker({ editor, element, tableId, readOnly }: { editor: BpmnEditor; element: Shape; tableId: string; readOnly: boolean }) {
+  const { data: xml } = useDiagramXml(tableId);
+  const decisions = useMemo(() => (xml ? parseDmn(xml) : []), [xml]);
+  const ref = linkedDecisionRef(element) ?? "";
+  if (decisions.length < 2 && !ref) return null;
+  return (
+    <label className="mt-2 flex flex-col gap-1.5">
+      <span className="text-[12px] text-slate">Decision in this file</span>
+      <select
+        data-inspector-field
+        value={ref}
+        disabled={readOnly}
+        onChange={(e) => service(editor, "modeling").updateProperties(element, { "coframe:decision": e.target.value || undefined })}
+        className="h-10 min-w-0 rounded-xl bg-fog px-3 text-[14px] outline-none focus:ring-2 focus:ring-cobalt"
+      >
+        <option value="">Match the task name</option>
+        {decisions.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name || d.id}
+            {d.requires.length ? ` (uses ${d.requires.length} ${d.requires.length === 1 ? "subdecision" : "subdecisions"})` : ""}
+          </option>
+        ))}
+        {ref && xml && !decisions.some((d) => d.id === ref) && <option value={ref}>Missing decision</option>}
+      </select>
+    </label>
+  );
+}
+
 function LinkField({
   editor,
   element,
@@ -77,7 +107,14 @@ function LinkField({
           data-inspector-field
           value={linked}
           disabled={readOnly}
-          onChange={(e) => service(editor, "modeling").updateProperties(element, { "coframe:diagram": e.target.value || undefined })}
+          onChange={(e) =>
+            service(editor, "modeling").updateProperties(
+              element,
+              kind === "dmn"
+                ? { "coframe:diagram": e.target.value || undefined, "coframe:decision": undefined }
+                : { "coframe:diagram": e.target.value || undefined },
+            )
+          }
           className="h-10 min-w-0 flex-1 rounded-xl bg-fog px-3 text-[14px] outline-none focus:ring-2 focus:ring-cobalt"
         >
           <option value="">{empty}</option>
@@ -99,6 +136,7 @@ function LinkField({
           </button>
         )}
       </div>
+      {kind === "dmn" && target && <DecisionPicker editor={editor} element={element} tableId={target.id} readOnly={readOnly} />}
       {kind === "dmn" && (
         <div className="mt-2 flex gap-2">
           {target ? (

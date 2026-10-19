@@ -64,9 +64,15 @@ name. In Coframe a decision table belongs to its process:
 - **Results meet branches.** Coframe reads which results the table can return and compares them with the
   gateway after the task: it flags a result with no branch (the process would get stuck) and a branch the
   table can never choose, labels branches from the results and adds the missing ones in one click.
+- **Decision requirements.** Draw the whole decision in one file as a requirements graph (DRD):
+  a main decision, the subdecisions it uses and the input data. Each business rule task can point to its
+  own decision in that graph, so "Subdecision 3" is decided early in the process and "Decision" at the end.
+  Coframe warns when a task needs the result of a subdecision that the process decides later or on
+  another path.
 - **Try it.** Enter inputs, see which rule matches, what it returns and where the process goes next.
-- **Simulate with real decisions.** In the token simulation, enter the data once and each decision
-  picks its branch.
+  Subdecisions are decided first and their results feed the decision that uses them.
+- **Simulate with real decisions.** In the token simulation, enter the data once and each decision,
+  together with the subdecisions it depends on, picks its branch.
 - **One artifact.** Export a PDF with the diagram followed by every decision table it uses, share a
   public link where viewers can open the tables, or present the process with each table on its step.
 - **Checked and reviewed together.** The exact checks and the AI review see the tables too: missing

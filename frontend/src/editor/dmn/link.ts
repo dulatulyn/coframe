@@ -29,6 +29,16 @@ export function linkedDecisionId(element: Element): string | null {
   return typeof value === "string" && value ? value : null;
 }
 
+export function linkedDecisionRef(element: Element): string | null {
+  const value = element?.businessObject?.get?.("coframe:decision");
+  return typeof value === "string" && value ? value : null;
+}
+
+export function badgeKey(element: Element): string {
+  const ref = linkedDecisionRef(element);
+  return ref ? `${linkedDecisionId(element)}#${ref}` : (linkedDecisionId(element) ?? "");
+}
+
 function sequenceOut(element: Element): Element[] {
   return (element?.outgoing ?? []).filter((c: Element) => c.type === "bpmn:SequenceFlow" && c.target);
 }
