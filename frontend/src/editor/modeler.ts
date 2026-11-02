@@ -13,7 +13,7 @@ import type NavigatedViewer from "bpmn-js/lib/NavigatedViewer";
 
 export type BpmnEditor = Modeler | NavigatedViewer;
 
-const renderer = { defaultStrokeColor: "#18181b", defaultLabelColor: "#18181b" };
+export const renderer = { defaultStrokeColor: "#18181b", defaultLabelColor: "#18181b" };
 
 export async function createEditor(container: HTMLElement, { readOnly }: { readOnly: boolean }): Promise<BpmnEditor> {
   if (readOnly) {

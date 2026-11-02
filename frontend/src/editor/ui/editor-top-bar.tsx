@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  FileArchive,
   ClipboardCopy,
   Code2,
   Download,
@@ -22,6 +23,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { track } from "@/lib/analytics";
 import { SaveWorkButton } from "@/components/app/guest";
 import { UserMenu } from "@/components/app/user-menu";
 import { ShareDialog } from "@/components/jam/share-dialog";
@@ -319,6 +321,15 @@ export function EditorTopBar({
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onExport("pdf-decisions")}>
                 <FileText /> PDF with decision tables
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void import("../project-pdf").then((m) => m.exportWholeProjectPdf(project.id))}>
+                <FileText /> Whole project as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/api/projects/${project.id}/export`} download onClick={() => track("export", { format: "project-zip" })}>
+                  <FileArchive /> Whole project as .zip
+                </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => onExport("copy-image")}>

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import defer
 
@@ -11,6 +11,8 @@ from app.permissions import forbidden, load_project, require_workspace_role, rol
 from app.schemas.projects import ProjectIn, ProjectOut, ProjectPatchIn
 from app.schemas.tree import FolderOut, TrashItem, TreeOut
 from app.services.common import touch_project
+from app.services.diagrams import content_disposition
+from app.services.export import project_zip
 from app.services.projects import create_diagram, project_out, projects_out
 from app.services.realtime import close_deleted_diagrams, disconnect, publish
 from app.services.tree import diagram_meta, empty_trash, trash_items
@@ -109,6 +111,16 @@ async def get_tree(project_id: uuid.UUID, user: CurrentUser, db: Db) -> TreeOut:
         project=await project_out(db, user, project, access),
         folders=[FolderOut.model_validate(folder) for folder in folders],
         diagrams=[diagram_meta(diagram) for diagram in diagrams],
+    )
+
+
+@router.get("/projects/{project_id}/export", response_class=Response)
+async def export_project(project_id: uuid.UUID, user: CurrentUser, db: Db) -> Response:
+    project, _ = await load_project(db, user, project_id)
+    return Response(
+        content=await project_zip(db, project),
+        media_type="application/zip",
+        headers={"Content-Disposition": content_disposition(project.name, ".zip")},
     )
 
 

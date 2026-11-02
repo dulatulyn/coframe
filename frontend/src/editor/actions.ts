@@ -80,11 +80,14 @@ export function toggleMinimap(editor: BpmnEditor): boolean {
   return minimap.isOpen();
 }
 
-function safeFileName(name: string): string {
+const MAX_CANVAS_SIDE = 12000;
+const MAX_CANVAS_AREA = 60_000_000;
+
+export function safeFileName(name: string): string {
   return name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "diagram";
 }
 
-function download(blob: Blob, fileName: string): void {
+export function download(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -107,6 +110,18 @@ export async function exportSvg(editor: BpmnEditor, name: string): Promise<void>
 
 async function renderImage(editor: BpmnEditor, scale: number, type: "image/png" | "image/jpeg", quality?: number) {
   const { svg } = await editor.saveSVG();
+  return rasterizeSvg(svg, scale, type, quality);
+}
+
+export type RenderedImage = { blob: Blob; width: number; height: number; cssWidth: number; cssHeight: number };
+
+export async function rasterizeSvg(
+  svg: string,
+  scale: number,
+  type: "image/png" | "image/jpeg",
+  quality?: number,
+  header?: { title: string; subtitle?: string },
+): Promise<RenderedImage> {
   const image = new Image();
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
@@ -115,17 +130,32 @@ async function renderImage(editor: BpmnEditor, scale: number, type: "image/png" 
       image.onerror = () => reject(new Error("could not render the diagram image"));
       image.src = url;
     });
+    const top = header ? (header.subtitle ? 76 : 56) : 0;
+    const cssWidth = Math.max(image.width, header ? 480 : 0);
+    const cssHeight = image.height + top;
+    const limit = Math.min(scale, MAX_CANVAS_SIDE / Math.max(cssWidth, cssHeight), Math.sqrt(MAX_CANVAS_AREA / (cssWidth * cssHeight)));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(image.width * scale);
-    canvas.height = Math.ceil(image.height * scale);
+    canvas.width = Math.ceil(cssWidth * limit);
+    canvas.height = Math.ceil(cssHeight * limit);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("canvas not available");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    ctx.scale(limit, limit);
+    if (header) {
+      ctx.fillStyle = "#18181b";
+      ctx.font = "600 18px Inter, ui-sans-serif, system-ui, sans-serif";
+      ctx.fillText(header.title, 24, 34, cssWidth - 48);
+      if (header.subtitle) {
+        ctx.fillStyle = "#71717a";
+        ctx.font = "400 13px Inter, ui-sans-serif, system-ui, sans-serif";
+        ctx.fillText(header.subtitle, 24, 56, cssWidth - 48);
+      }
+    }
+    ctx.drawImage(image, 0, top, image.width, image.height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
     if (!blob) throw new Error("could not encode the diagram image");
-    return { blob, width: canvas.width, height: canvas.height, cssWidth: image.width, cssHeight: image.height };
+    return { blob, width: canvas.width, height: canvas.height, cssWidth, cssHeight };
   } finally {
     URL.revokeObjectURL(url);
   }

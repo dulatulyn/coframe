@@ -10,6 +10,8 @@ import {
   Clock3,
   Copy,
   Download,
+  FileArchive,
+  FileText,
   Folder,
   FolderInput,
   FolderPlus,
@@ -60,6 +62,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { track } from "@/lib/analytics";
 import { errorMessage } from "@/lib/api/client";
 import {
   useCreateDiagram,
@@ -315,6 +318,33 @@ export function ProjectFiles({
         <div className="min-w-0 flex-1">
           <div className="truncate text-[15px] font-semibold tracking-tight">{tree.project.name}</div>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Export project"
+              title="Export project"
+              className="grid size-8 place-items-center rounded-full text-slate hover:bg-fog hover:text-ink data-[state=open]:bg-fog data-[state=open]:text-ink"
+            >
+              <Download className="size-[18px]" strokeWidth={1.75} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuLabel>Export whole project</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => void import("@/editor/project-pdf").then((m) => m.exportWholeProjectPdf(tree.project.id))}>
+              <FileText /> PDF — all diagrams &amp; tables
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a
+                href={`/api/projects/${tree.project.id}/export`}
+                download
+                onClick={() => track("export", { format: "project-zip" })}
+              >
+                <FileArchive /> .zip — all .bpmn &amp; .dmn files
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Link
           href={`/p/${tree.project.id}/map`}
           aria-label="Process map"
