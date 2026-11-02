@@ -35,6 +35,8 @@ ssh "${ssh_opts[@]}" "$target" '
   for service in api web caddy; do
     $compose build "$service"
     docker builder prune -af >/dev/null
+    $compose up -d --no-deps "$service"
+    docker image prune -f >/dev/null
   done
   $compose up -d --remove-orphans
   docker image prune -f >/dev/null
