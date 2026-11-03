@@ -8,6 +8,8 @@ import "./editor.css";
 
 import type Modeler from "bpmn-js/lib/Modeler";
 
+import { AI_ENABLED } from "@/config/features";
+
 import { COFRAME_MODDLE } from "./coframe-moddle";
 import type NavigatedViewer from "bpmn-js/lib/NavigatedViewer";
 
@@ -56,7 +58,7 @@ export async function createEditor(container: HTMLElement, { readOnly }: { readO
       GridModule,
       MinimapModule,
       ColorPickerModule,
-      SuggestPadModule,
+      ...(AI_ENABLED ? [SuggestPadModule] : []),
       SimulationModule,
       MenuIconsModule,
       SubProcessPadModule,

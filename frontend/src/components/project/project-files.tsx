@@ -62,6 +62,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { AI_ENABLED } from "@/config/features";
 import { track } from "@/lib/analytics";
 import { errorMessage } from "@/lib/api/client";
 import {
@@ -368,9 +369,11 @@ export function ProjectFiles({
           <Button className="flex-1" onClick={() => addDiagram()} disabled={createDiagram.isPending}>
             <Plus className="size-4" strokeWidth={2.25} /> New diagram
           </Button>
-          <Button variant="outline" size="icon" aria-label="Generate with AI" title="Generate with AI" onClick={() => setGenerating(true)}>
-            <Sparkles className="size-[18px]" strokeWidth={1.75} />
-          </Button>
+          {AI_ENABLED && (
+            <Button variant="outline" size="icon" aria-label="Generate with AI" title="Generate with AI" onClick={() => setGenerating(true)}>
+              <Sparkles className="size-[18px]" strokeWidth={1.75} />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="More create options">
@@ -687,7 +690,7 @@ export function ProjectFiles({
         </button>
       </div>
 
-      <GenerateDialog projectId={projectId} folderId={folderId} open={generating} onOpenChange={setGenerating} />
+      {AI_ENABLED && <GenerateDialog projectId={projectId} folderId={folderId} open={generating} onOpenChange={setGenerating} />}
       <NameDialog
         open={newFolder}
         title="New folder"

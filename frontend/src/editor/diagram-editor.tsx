@@ -24,6 +24,8 @@ import {
   zoomBy,
   zoomToFit,
 } from "./actions";
+import { AI_ENABLED } from "@/config/features";
+
 import { AI_APPLIED_EVENT, type AiChange } from "./ai/apply";
 import { SUGGEST_EVENT } from "./ai/suggest-pad";
 import { BpmnBinding } from "./collab/binding";
@@ -209,7 +211,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+      if (AI_ENABLED && e.key === "k" && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         setSuggestFor(null);
         setCommandOpen((open) => !open);
@@ -307,7 +309,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         onShortcuts={() => setShortcutsOpen(true)}
         assistantOpen={assistantOpen}
         onAssistant={
-          editor && editing
+          AI_ENABLED && editor && editing
             ? () => {
                 setCommentsOpen(false);
                 setDecisionFor(null);
@@ -388,7 +390,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
       {editor && view === "simulate" && <SimulateDecisions editor={editor} />}
       {editor && view === "roles" && <RolesPanel editor={editor} readOnly={readOnly} />}
       {editor && view === "metrics" && <MetricsPanel editor={editor} readOnly={readOnly} />}
-      {editor && assistantOpen && editing && (
+      {AI_ENABLED && editor && assistantOpen && editing && (
         <AssistantPanel
           editor={editor}
           diagramId={diagram.id}
@@ -488,7 +490,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
         </div>
       )}
 
-      {editor && editing && !failed && !session?.ended && !suggestFor && !decisionFor && (
+      {AI_ENABLED && editor && editing && !failed && !session?.ended && !suggestFor && !decisionFor && (
         <AiCommand
           editor={editor}
           diagramId={diagram.id}
@@ -509,7 +511,7 @@ export function DiagramEditor({ diagram, project, me }: { diagram: Diagram; proj
           onDone={clearAiChange}
         />
       )}
-      {editor && suggestFor && !readOnly && (
+      {AI_ENABLED && editor && suggestFor && !readOnly && (
         <SuggestPopover
           key={suggestFor}
           editor={editor}
